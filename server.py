@@ -17,10 +17,11 @@ def post_data():
     user_id = None
     group_id = None
 
+    reply = ""
+
     if type == 'private':
         user_id = sender.get('user_id')
         print(f"{user_id}: {message}")
-
         if re.match("\+reset", message) is not None:
             reply = chat.on_reset(user_id)
         elif re.match("\+retry", message) is not None:
@@ -40,8 +41,9 @@ def post_data():
         elif re.match("\+retry", message) is not None:
             reply = chat.on_message(user_id, "", True)
         else:
-            _, span = re.match("\+chat\s", message)
-            reply = chat.on_message(user_id, message[span:], False)
+            m = re.match("\+chat\s", message)
+            if m is not None:
+                reply = chat.on_message(user_id, message[6:], False)
         print(reply)
 
         requests.get(
