@@ -24,7 +24,7 @@ HELP_MESSAGE = '''Commands:
 
 MORE_HELP_MESSAGE = '''
 
-+qa: Ask questions
++qa <text>: Ask questions
 
 +c(hat) <text>: Chat with me
 
@@ -32,6 +32,8 @@ MORE_HELP_MESSAGE = '''
 
 +alt: Alternative reply
 '''
+
+received_messages = set()
 
 
 def commands(user: User, message, enable_chat=False, is_private=False):
@@ -77,13 +79,16 @@ def commands(user: User, message, enable_chat=False, is_private=False):
     return reply, matched
 
 
-@app.route('/', methods=["POST", "GET"])
+@app.route('/', methods=["POST"])
 def post_data():
     json = request.get_json()
     type = json.get('message_type')
     message = json.get('raw_message')
-    # message_id = json.get('message_id')
+    message_id = json.get('message_id')
     sender = json.get('sender')
+
+    if message_id in received_messages:
+        return 'OK'
 
     if type == 'private':
         user = User(sender)
@@ -93,6 +98,8 @@ def post_data():
         if matched:
             print(f"{user.nickname}({user.id}): {message}")
             print(reply)
+
+            received_messages.add(message_id)
             requests.get(
                 f"http://127.0.0.1:5700/send_private_msg?user_id={user.id}&message={reply}")
     elif type == 'group':
@@ -106,6 +113,8 @@ def post_data():
         if matched:
             print(f"{group_id}: {user.nickname}({user.id}): {message}")
             print(reply)
+
+            received_messages.add(message_id)
             requests.get(
                 f"http://127.0.0.1:5700/send_group_msg?group_id={group_id}&message={reply}")
 

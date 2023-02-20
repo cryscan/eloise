@@ -97,6 +97,7 @@ def load_all_state(uid, channel):
 
 
 def clear_current_state():
+    global model_tokens, current_state
     model_tokens = []
     current_state = None
 
@@ -145,19 +146,8 @@ def on_reset(user: User) -> str:
     return f"Chat reset for {user.nickname}."
 
 
-last_message = {}
-
-
 def on_generate(user: User, message: str, mode: str = "") -> str:
     global model_tokens, current_state, last_message
-
-    try:
-        # To avoid endless repetition
-        if last_message[user.id] == message:
-            return ""
-    except:
-        pass
-    last_message[user.id] = message
 
     msg = message.replace("\r\n", '\n').replace('\\n', '\n').strip()
     if len(msg) > 1024:
@@ -177,9 +167,9 @@ def on_generate(user: User, message: str, mode: str = "") -> str:
         except:
             return ""
     else:
-        next = '\n' + message.strip()
+        next = '\n' + msg.strip()
         if mode == "qa":
-            next = f"\nQuestion: {message.strip()}\n\nExpert Full Answer:\n"
+            next = f"\nQuestion: {msg.strip()}?\n\nExpert Full Answer:\n"
 
         current_state = None
         out = run_rnn(tokenizer.tokenizer.encode(next))
@@ -222,14 +212,6 @@ def on_generate(user: User, message: str, mode: str = "") -> str:
 
 def on_message(user: User, message: str, alt: bool = False) -> str:
     global model_tokens, current_state
-
-    try:
-        # To avoid endless repetition
-        if last_message[user.id] == message:
-            return ""
-    except:
-        pass
-    last_message[user.id] = message
 
     msg = message.replace('\r\n', '\n').replace('\\n', '\n').strip()
     if len(msg) > 1024:
@@ -288,4 +270,5 @@ def on_message(user: User, message: str, alt: bool = False) -> str:
 
     save_all_state(user.id, "chat", out)
 
+    reply = reply.replace(user.name(), user.nickname)
     return reply
