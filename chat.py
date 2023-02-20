@@ -152,7 +152,7 @@ def on_generate(user: User, message: str, mode: str = "") -> str:
 
     try:
         # To avoid endless repetition
-        if mode == "" and last_message[user.id] == message:
+        if last_message[user.id] == message:
             last_message[user.id] = message
             return ""
     except:
