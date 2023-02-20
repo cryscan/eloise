@@ -82,18 +82,18 @@ def run_rnn(tokens, nl_bias=0):
 all_state = {}
 
 
-def save_all_state(srv, name, last_out):
+def save_all_state(uid, channel, last_out):
     global all_state
-    n = f'{srv}_{name}'
+    n = f'{uid}_{channel}'
     all_state[n] = {}
     all_state[n]['out'] = last_out
     all_state[n]['rnn'] = copy.deepcopy(current_state)
     all_state[n]['token'] = copy.deepcopy(model_tokens)
 
 
-def load_all_state(srv, name):
+def load_all_state(uid, channel):
     global all_state, model_tokens, current_state
-    n = f'{srv}_{name}'
+    n = f'{uid}_{channel}'
     current_state = copy.deepcopy(all_state[n]['rnn'])
     model_tokens = copy.deepcopy(all_state[n]['token'])
     return all_state[n]['out']
@@ -102,32 +102,50 @@ def load_all_state(srv, name):
 # Profile
 
 
-user = "User"
-bot = "Bot"
+# user = "User"
+# bot = "Bot"
+# interface = ":"
+
+# chatbot_intro = f'''
+# The following is a verbose and detailed conversation between an AI assistant called {bot}, and a human user called {user}. {bot} is intelligent, knowledgeable, wise and polite.
+
+# {user}{interface} french revolution what year
+
+# {bot}{interface} The French Revolution started in 1789, and lasted 10 years until 1799.
+
+# {user}{interface} 3+5=?
+
+# {bot}{interface} The answer is 8.
+
+# {user}{interface} guess i marry who ?
+
+# {bot}{interface} Only if you tell me more about yourself - what are your interests?
+
+# {user}{interface} solve for a: 9-a=2
+
+# {bot}{interface} The answer is a = 7, because 9 - 7 = 2.
+
+# {user}{interface} wat is lhc
+
+# {bot}{interface} LHC is a high-energy particle collider, built by CERN, and completed in 2008. They used it to confirm the existence of the Higgs boson in 2012.
+
+# '''
+
+user = "Simmons"
+bot = "Lucy"
+pron = "her"
 interface = ":"
 
 chatbot_intro = f'''
-The following is a verbose and detailed conversation between an AI assistant called {bot}, and a human user called {user}. {bot} is intelligent, knowledgeable, wise and polite.
+The following is a verbose detailed conversation between a boy {user} and a young girl {bot}. {bot} really likes role playing. {bot} is intelligent, friendly and cute. {bot} always tells everything {pron} knows to {user}.
 
-{user}{interface} french revolution what year
+{user}{interface} Hello {bot}, are you going to school today?
 
-{bot}{interface} The French Revolution started in 1789, and lasted 10 years until 1799.
+{bot}{interface} No, today is holiday.
 
-{user}{interface} 3+5=?
+{user}{interface} That's nice! Do you want to chat with me a while?
 
-{bot}{interface} The answer is 8.
-
-{user}{interface} guess i marry who ?
-
-{bot}{interface} Only if you tell me more about yourself - what are your interests?
-
-{user}{interface} solve for a: 9-a=2
-
-{bot}{interface} The answer is a = 7, because 9 - 7 = 2.
-
-{user}{interface} wat is lhc
-
-{bot}{interface} LHC is a high-energy particle collider, built by CERN, and completed in 2008. They used it to confirm the existence of the Higgs boson in 2012.
+{bot}{interface} Of course! I'm listening.
 
 '''
 
@@ -144,26 +162,7 @@ def clamp(n, minimum, maximum):
     return max(minimum, min(n, maximum))
 
 
-def init_chat_state(srv):
-    try:
-        load_all_state(srv, "chat")
-    except:
-        on_reset(srv)
-
-
-def on_reset(srv) -> str:
-    out = load_all_state("", "chatbot_intro")
-    save_all_state(srv, "chat", out)
-    return "Chat reset."
-
-
-def on_message(srv, message: str, retry: bool) -> str:
-    global model_tokens, current_state
-
-    msg = message.replace('\\n', '\n').strip()
-    if len(msg) > 2048:
-        return "Your message is too long! (max 2048 tokens)"
-
+def read_sampler_params(msg):
     x_temp = 1.0
     x_top_p = 0.85
     if ("-temp=" in msg):
@@ -177,20 +176,108 @@ def on_message(srv, message: str, retry: bool) -> str:
 
     x_temp = clamp(x_temp, 0.2, 5)
     x_top_p = max(0, x_top_p)
+    return x_temp, x_top_p
 
-    if not retry:
-            init_chat_state(srv)
-            out = load_all_state(srv, "chat")
-            next_in = f"{user}{interface} {msg}\n\n{bot}{interface}"
 
-            out = run_rnn(tokenizer.tokenizer.encode(next_in), nl_bias=NO_NEWLINE)
-            save_all_state(srv, "chat_previous", out)
+def on_reset(uid, nickname) -> str:
+    out = load_all_state("", "chatbot_intro")
+    save_all_state(uid, "chat", out)
+    return f"Chat reset for {nickname}."
+
+
+def on_generate(uid, message: str, mode: str = "") -> str:
+    global model_tokens, current_state
+
+    msg = message.replace('\r\n', '\n').replace('\\n', '\n').strip()
+    if len(msg) > 1024:
+        return "Your message is too long! (max 1024 tokens)"
+
+    x_temp, x_top_p = read_sampler_params(msg)
+
+    if mode == "retry":
+        try:
+            out = load_all_state(uid, "gen_0")
+        except:
+            return ""
+    elif mode == "more":
+        try:
+            out = load_all_state(uid, "gen_1")
+            save_all_state(uid, "gen_0", out)
+        except:
+            return ""
+    else:
+        next = '\n' + message.strip()
+        if mode == "qa":
+            next = f"\nQuestion: {message.strip()}\n\nFull Expert Answer:\n"
+
+        current_state = None
+        out = run_rnn(tokenizer.tokenizer.encode(next))
+        save_all_state(uid, "gen_0", out)
+
+    begin = len(model_tokens)
+    out_last = begin
+    for i in range(150):
+        if i <= 0:
+            nl_bias = NO_NEWLINE
+        elif i <= 30:
+            nl_bias = (i - 30) * 0.1
+        elif i <= 130:
+            nl_bias = 0
+        else:
+            nl_bias = (i - 130) * 0.25
+        token = tokenizer.sample_logits(
+            out,
+            model_tokens,
+            args.ctx_len,
+            temperature=x_temp,
+            top_p_usual=x_top_p,
+            top_p_newline=x_top_p,
+        )
+        out = run_rnn([token], nl_bias=nl_bias)
+
+        xxx = tokenizer.tokenizer.decode(model_tokens[out_last:])
+        if '\ufffd' not in xxx:
+            out_last = begin + i + 1
+
+        reply = tokenizer.tokenizer.decode(
+            model_tokens[begin:]).replace('\\n', '\n')
+        if '\n\n' in reply:
+            reply = reply.strip()
+            break
+    print('\n')
+
+    reply = tokenizer.tokenizer.decode(model_tokens[begin:]).strip()
+
+    save_all_state(uid, "gen_1", out)
+    return reply
+
+
+def on_message(uid, message: str, alt: bool = False) -> str:
+    global model_tokens, current_state
+
+    msg = message.replace('\r\n', '\n').replace('\\n', '\n').strip()
+    if len(msg) > 1024:
+        return "Your message is too long! (max 1024 tokens)"
+
+    x_temp, x_top_p = read_sampler_params(msg)
+
+    if not alt:
+        try:
+            out = load_all_state(uid, "chat")
+        except:
+            out = load_all_state("", "chatbot_intro")
+            save_all_state(uid, "chat", out)
+        next = f"{user}{interface} {msg}\n\n{bot}{interface}"
+
+        out = run_rnn(tokenizer.tokenizer.encode(next), nl_bias=NO_NEWLINE)
+        save_all_state(uid, "chat_previous", out)
     else:
         try:
-            out = load_all_state(srv, "chat_previous")
+            out = load_all_state(uid, "chat_previous")
         except:
             return ""
 
+    reply = ""
     begin = len(model_tokens)
     out_last = begin
     for i in range(MAX_REPLY_LEN):
@@ -217,9 +304,12 @@ def on_message(srv, message: str, retry: bool) -> str:
             # print(xxx, end='', flush=True)
             out_last = begin + i + 1
 
-        send_msg = tokenizer.tokenizer.decode(model_tokens[begin:])
-        if '\n\n' in send_msg:
-            send_msg = send_msg.strip()
-            return send_msg
+        reply = tokenizer.tokenizer.decode(
+            model_tokens[begin:]).replace('\\n', '\n')
+        if '\n\n' in reply:
+            reply = reply.strip()
+            break
 
-    return ""
+    save_all_state(uid, "chat", out)
+
+    return reply

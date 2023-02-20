@@ -19,9 +19,9 @@ NNFunction = __nop
 # MyFunction = torchdynamo.optimize(os.environ["RWKV_RUN_BACKEND"]) # !!!BUGGY!!! wrong output
 
 # try torch jit --> faster for fp32, slower for fp16 (why?)
-# if os.environ["RWKV_JIT_ON"] == "1":
-#     MyModule = torch.jit.ScriptModule
-#     MyFunction = torch.jit.script_method
+if os.environ["RWKV_JIT_ON"] == "1":
+    MyModule = torch.jit.ScriptModule
+    MyFunction = torch.jit.script_method
 
 RWKV_HEAD_QK_DIM = 0
 print(f'\nRWKV_HEAD_QK_DIM {RWKV_HEAD_QK_DIM} RWKV_JIT_ON {os.environ["RWKV_JIT_ON"]}\n')
