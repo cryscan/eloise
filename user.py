@@ -28,7 +28,7 @@ The following is a verbose detailed conversation between a {pron} {user} and a y
 
 {user}{interface} I am very good! It's nice to see you. Would you mind me chatting with you for a while?
 
-{bot}{interface} Of course! I'm listening.
+{bot}{interface} Of course! I'm free now.
 
 '''
 
