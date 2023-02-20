@@ -5,6 +5,7 @@ import types
 import gc
 import numpy as np
 import torch
+from user import User, default_male_user, default_female_user
 
 from model.model_run import RWKV_RNN
 from model.utils import TOKENIZER
@@ -47,16 +48,11 @@ args.n_layer = 32
 args.n_embd = 4096
 args.ctx_len = 1024
 
-model = None
 
-
-def load_model():
-    # Load Model
-    global model
-    print(f"Loading... {args.MODEL_NAME}")
-
-    os.environ["RWKV_RUN_DEVICE"] = args.RUN_DEVICE
-    model = RWKV_RNN(args)
+# Load Model
+print(f"Loading... {args.MODEL_NAME}")
+os.environ["RWKV_RUN_DEVICE"] = args.RUN_DEVICE
+model = RWKV_RNN(args)
 
 
 model_tokens = []
@@ -99,79 +95,42 @@ def load_all_state(uid, channel):
     return all_state[n]['out']
 
 
-# Profile
-
-
-# user = "User"
-# bot = "Bot"
-# interface = ":"
-
-# chatbot_intro = f'''
-# The following is a verbose and detailed conversation between an AI assistant called {bot}, and a human user called {user}. {bot} is intelligent, knowledgeable, wise and polite.
-
-# {user}{interface} french revolution what year
-
-# {bot}{interface} The French Revolution started in 1789, and lasted 10 years until 1799.
-
-# {user}{interface} 3+5=?
-
-# {bot}{interface} The answer is 8.
-
-# {user}{interface} guess i marry who ?
-
-# {bot}{interface} Only if you tell me more about yourself - what are your interests?
-
-# {user}{interface} solve for a: 9-a=2
-
-# {bot}{interface} The answer is a = 7, because 9 - 7 = 2.
-
-# {user}{interface} wat is lhc
-
-# {bot}{interface} LHC is a high-energy particle collider, built by CERN, and completed in 2008. They used it to confirm the existence of the Higgs boson in 2012.
-
-# '''
-
-user = "Simmons"
-bot = "Lucy"
-pron = "her"
-interface = ":"
-
-chatbot_intro = f'''
-The following is a verbose detailed conversation between a boy {user} and a young girl {bot}. {bot} really likes role playing. {bot} is intelligent, friendly and cute. {bot} always tells everything {pron} knows to {user}.
-
-{user}{interface} Hello {bot}, are you going to school today?
-
-{bot}{interface} No, today is holiday.
-
-{user}{interface} That's nice! Do you want to chat with me a while?
-
-{bot}{interface} Of course! I'm listening.
-
-'''
+def clear_current_state():
+    model_tokens = []
+    current_state = None
 
 
 def init_run():
-    out = run_rnn(tokenizer.tokenizer.encode(chatbot_intro))
+    clear_current_state()
+    out = run_rnn(tokenizer.tokenizer.encode(default_male_user.intro()))
+
     gc.collect()
     torch.cuda.empty_cache()
+    save_all_state("", "intro_male", out)
+    save_all_state("", "intro_unknown", out)
 
-    save_all_state("", "chatbot_intro", out)
+    clear_current_state()
+    out = run_rnn(tokenizer.tokenizer.encode(default_female_user.intro()))
+
+    gc.collect()
+    torch.cuda.empty_cache()
+    save_all_state("", "intro_female", out)
 
 
 def clamp(n, minimum, maximum):
     return max(minimum, min(n, maximum))
 
 
-def read_sampler_params(msg):
+def read_sampler_params(message):
     x_temp = 1.0
     x_top_p = 0.85
-    if ("-temp=" in msg):
-        x_temp = float(msg.split("-temp=")[1].split(" ")[0])
-        msg = msg.replace("-temp="+f'{x_temp:g}', "")
+    if ("-temp=" in message):
+        x_temp = float(message.split("-temp=")[1].split(" ")[0])
+        message = message.replace("-temp="+f'{x_temp:g}', "")
         # print(f"temp: {x_temp}")
-    if ("-top_p=" in msg):
-        x_top_p = float(msg.split("-top_p=")[1].split(" ")[0])
-        msg = msg.replace("-top_p="+f'{x_top_p:g}', "")
+    if ("-top_p=" in message):
+        x_top_p = float(message.split("-top_p=")[1].split(" ")[0])
+        message = message.replace("-top_p="+f'{x_top_p:g}', "")
         # print(f"top_p: {x_top_p}")
 
     x_temp = clamp(x_temp, 0.2, 5)
@@ -179,16 +138,28 @@ def read_sampler_params(msg):
     return x_temp, x_top_p
 
 
-def on_reset(uid, nickname) -> str:
-    out = load_all_state("", "chatbot_intro")
-    save_all_state(uid, "chat", out)
-    return f"Chat reset for {nickname}."
+def on_reset(user: User) -> str:
+    out = load_all_state("", f"intro_{user.sex}")
+    save_all_state(user.id, "chat", out)
+    return f"Chat reset for {user.nickname}."
 
 
-def on_generate(uid, message: str, mode: str = "") -> str:
-    global model_tokens, current_state
+last_message = {}
 
-    msg = message.replace('\r\n', '\n').replace('\\n', '\n').strip()
+
+def on_generate(user: User, message: str, mode: str = "") -> str:
+    global model_tokens, current_state, last_message
+
+    try:
+        # To avoid endless repetition
+        if mode == "" and last_message[user.id] == message:
+            last_message[user.id] = message
+            return ""
+    except:
+        pass
+    last_message[user.id] = message
+
+    msg = message.replace("\r\n", '\n').replace('\\n', '\n').strip()
     if len(msg) > 1024:
         return "Your message is too long! (max 1024 tokens)"
 
@@ -196,37 +167,29 @@ def on_generate(uid, message: str, mode: str = "") -> str:
 
     if mode == "retry":
         try:
-            out = load_all_state(uid, "gen_0")
+            out = load_all_state(user.id, "gen_0")
         except:
             return ""
     elif mode == "more":
         try:
-            out = load_all_state(uid, "gen_1")
-            save_all_state(uid, "gen_0", out)
+            out = load_all_state(user.id, "gen_1")
+            save_all_state(user.id, "gen_0", out)
         except:
             return ""
     else:
         next = '\n' + message.strip()
         if mode == "qa":
-            next = f"\nQuestion: {message.strip()}\n\nFull Expert Answer:\n"
+            next = f"\nQuestion: {message.strip()}\n\nExpert Full Answer:\n"
 
         current_state = None
         out = run_rnn(tokenizer.tokenizer.encode(next))
-        save_all_state(uid, "gen_0", out)
+        save_all_state(user.id, "gen_0", out)
 
     reply = ""
 
     begin = len(model_tokens)
     out_last = begin
     for i in range(150):
-        if i <= 0:
-            nl_bias = NO_NEWLINE
-        elif i <= 30:
-            nl_bias = (i - 30) * 0.1
-        elif i <= 130:
-            nl_bias = 0
-        else:
-            nl_bias = (i - 130) * 0.25
         token = tokenizer.sample_logits(
             out,
             model_tokens,
@@ -235,27 +198,29 @@ def on_generate(uid, message: str, mode: str = "") -> str:
             top_p_usual=x_top_p,
             top_p_newline=x_top_p,
         )
-        out = run_rnn([token], nl_bias=nl_bias)
+        out = run_rnn([token])
 
         xxx = tokenizer.tokenizer.decode(model_tokens[out_last:])
         if '\ufffd' not in xxx:
             out_last = begin + i + 1
 
-        reply = tokenizer.tokenizer.decode(model_tokens[begin:])
-        reply = reply.replace('\r\n', '\n').replace('\\n', '\n')
-        if '\n\n' in reply:
-            reply = reply.replace('\n\n', '\n').strip()
-            break
-    print('\n')
+        if mode == "qa":
+            reply = tokenizer.tokenizer.decode(model_tokens[begin:])
+            reply = reply.replace("\r\n", '\n').replace('\\n', '\n')
+            if '\n\n' in reply:
+                reply = reply.strip()
+                break
+
+    save_all_state(user.id, "gen_1", out)
 
     reply = tokenizer.tokenizer.decode(model_tokens[begin:]).strip()
-    reply = reply.replace('\r\n', '\n').replace('\\n', '\n').replace('\n\n', '\n')
+    reply = reply.replace("\r\n", '\n')
+    reply = reply.replace('\\n', '\n')
+    reply = reply.replace("\n\n", '\n')
+    return reply.strip()
 
-    save_all_state(uid, "gen_1", out)
-    return reply
 
-
-def on_message(uid, message: str, alt: bool = False) -> str:
+def on_message(user: User, message: str, alt: bool = False) -> str:
     global model_tokens, current_state
 
     msg = message.replace('\r\n', '\n').replace('\\n', '\n').strip()
@@ -266,17 +231,17 @@ def on_message(uid, message: str, alt: bool = False) -> str:
 
     if not alt:
         try:
-            out = load_all_state(uid, "chat")
+            out = load_all_state(user.id, "chat")
         except:
-            out = load_all_state("", "chatbot_intro")
-            save_all_state(uid, "chat", out)
-        next = f"{user}{interface} {msg}\n\n{bot}{interface}"
+            out = load_all_state("", f"intro_{user.sex}")
+            save_all_state(user.id, "chat", out)
+        next = user.chat_format(msg)
 
         out = run_rnn(tokenizer.tokenizer.encode(next), nl_bias=NO_NEWLINE)
-        save_all_state(uid, "chat_previous", out)
+        save_all_state(user.id, "chat_previous", out)
     else:
         try:
-            out = load_all_state(uid, "chat_previous")
+            out = load_all_state(user.id, "chat_previous")
         except:
             return ""
 
@@ -308,11 +273,11 @@ def on_message(uid, message: str, alt: bool = False) -> str:
             out_last = begin + i + 1
 
         reply = tokenizer.tokenizer.decode(model_tokens[begin:])
-        reply = reply.replace('\r\n', '\n').replace('\\n', '\n')
+        reply = reply.replace("\r\n", '\n').replace('\\n', '\n')
         if '\n\n' in reply:
-            reply = reply.replace('\n\n', '\n').strip()
+            reply = reply.strip()
             break
 
-    save_all_state(uid, "chat", out)
+    save_all_state(user.id, "chat", out)
 
     return reply
