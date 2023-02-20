@@ -9,7 +9,7 @@ app = Flask(__name__)
 
 
 banned_groups = []
-chat_groups = [1058164126]
+chat_groups = [1058164126, 1079546706, 686922858]
 
 HELP_MESSAGE = '''Commands:
 

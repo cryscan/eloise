@@ -43,9 +43,10 @@ args.pre_ffn = 0
 args.grad_cp = 0
 args.my_pos_emb = 0
 
-args.MODEL_NAME = '/root/autodl-tmp/Models/RWKV-4-Pile-7B-20221115-8047'
-args.n_layer = 32
-args.n_embd = 4096
+# args.MODEL_NAME = '/root/autodl-tmp/Models/RWKV-4-Pile-7B-20221115-8047'
+args.MODEL_NAME = '/root/autodl-tmp/Models/RWKV-4-Pile-14B-20230213-8019'
+args.n_layer = 40   # 32
+args.n_embd = 5120  # 4096
 args.ctx_len = 1024
 
 
@@ -153,7 +154,6 @@ def on_generate(user: User, message: str, mode: str = "") -> str:
     try:
         # To avoid endless repetition
         if last_message[user.id] == message:
-            last_message[user.id] = message
             return ""
     except:
         pass
@@ -222,6 +222,14 @@ def on_generate(user: User, message: str, mode: str = "") -> str:
 
 def on_message(user: User, message: str, alt: bool = False) -> str:
     global model_tokens, current_state
+
+    try:
+        # To avoid endless repetition
+        if last_message[user.id] == message:
+            return ""
+    except:
+        pass
+    last_message[user.id] = message
 
     msg = message.replace('\r\n', '\n').replace('\\n', '\n').strip()
     if len(msg) > 1024:
