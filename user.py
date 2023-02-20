@@ -34,7 +34,7 @@ The following is a verbose detailed conversation between a {pron} {user} and a y
 
     def chat_format(self, message):
         user = self.name()
-        bot = "Lucy"
+        bot = "Eloise"
         interface = ":"
 
         return f"{user}{interface} {message}\n\n{bot}{interface}"
