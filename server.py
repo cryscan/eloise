@@ -19,11 +19,11 @@ HELP_MESSAGE = '''Commands:
 +retry|t: Retry last generation
 
 +m(ore): Continue generating more
-
-+qa: Ask questions
 '''
 
 MORE_HELP_MESSAGE = '''
+
++qa: Ask questions
 
 +c(hat) <text>: Chat with me
 

@@ -214,6 +214,8 @@ def on_generate(uid, message: str, mode: str = "") -> str:
         out = run_rnn(tokenizer.tokenizer.encode(next))
         save_all_state(uid, "gen_0", out)
 
+    reply = ""
+
     begin = len(model_tokens)
     out_last = begin
     for i in range(150):
@@ -239,14 +241,15 @@ def on_generate(uid, message: str, mode: str = "") -> str:
         if '\ufffd' not in xxx:
             out_last = begin + i + 1
 
-        reply = tokenizer.tokenizer.decode(
-            model_tokens[begin:]).replace('\\n', '\n')
+        reply = tokenizer.tokenizer.decode(model_tokens[begin:])
+        reply = reply.replace('\r\n', '\n').replace('\\n', '\n')
         if '\n\n' in reply:
-            reply = reply.strip()
+            reply = reply.replace('\n\n', '\n').strip()
             break
     print('\n')
 
     reply = tokenizer.tokenizer.decode(model_tokens[begin:]).strip()
+    reply = reply.replace('\r\n', '\n').replace('\\n', '\n').replace('\n\n', '\n')
 
     save_all_state(uid, "gen_1", out)
     return reply
@@ -304,10 +307,10 @@ def on_message(uid, message: str, alt: bool = False) -> str:
             # print(xxx, end='', flush=True)
             out_last = begin + i + 1
 
-        reply = tokenizer.tokenizer.decode(
-            model_tokens[begin:]).replace('\\n', '\n')
+        reply = tokenizer.tokenizer.decode(model_tokens[begin:])
+        reply = reply.replace('\r\n', '\n').replace('\\n', '\n')
         if '\n\n' in reply:
-            reply = reply.strip()
+            reply = reply.replace('\n\n', '\n').strip()
             break
 
     save_all_state(uid, "chat", out)
