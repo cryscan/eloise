@@ -13,44 +13,52 @@ chat_groups = [1058164126, 1079546706, 686922858]
 
 HELP_MESSAGE = '''Commands:
 
-+h(elp): Show this help
+-h(elp): Show this help
 
-+g(en) <text>: Generate text
+-g(en) <text>: Generate text
 
-+retry|t: Retry last generation
+-retry|t: Retry last generation
 
-+m(ore): Continue generating more
+-m(ore): Continue generating more
 '''
 
 MORE_HELP_MESSAGE = '''
+-qa <text>: Ask questions
 
-+qa <text>: Ask questions
+-reset|s: Reset your chat chain
 
-+c(hat) <text>: Chat with me
+-alt: Alternative reply
+'''
 
-+reset|s: Reset your chat chain
-
-+alt: Alternative reply
+CHAT_HELP_MESSAGE = '''
+-c(hat) <text>: Chat with me
+'''
+PRIVATE_HELP_MESSAGE = '''
+<text>: Chat with me
 '''
 
 received_messages = set()
 
 
 def commands(user: User, message, enable_chat=False, is_private=False):
-    help_match = re.match("\+h(elp)?", message)
+    help_match = re.match("\-h(elp)?", message)
 
-    retry_match = re.match("\+(retry|t)", message)
-    more_match = re.match("\+m(ore)?", message)
-    gen_match = re.match("\+g(en)?\s+", message)
-    qa_match = re.match("\+qa\s+", message)
+    retry_match = re.match("\-(retry|t)", message)
+    more_match = re.match("\-m(ore)?", message)
+    gen_match = re.match("\-g(en)?\s+", message)
+    qa_match = re.match("\-qa\s+", message)
 
-    reset_match = re.match("\+(reset|s)", message)
-    alt_match = re.match("\+alt", message)
-    chat_match = re.match("\+c(hat)?\s+", message)
+    reset_match = re.match("\-(reset|s)", message)
+    alt_match = re.match("\-alt", message)
+    chat_match = re.match("\-c(hat)?\s+", message)
 
     help = HELP_MESSAGE
     if enable_chat:
         help += MORE_HELP_MESSAGE
+    if enable_chat and not is_private:
+        help += CHAT_HELP_MESSAGE
+    if is_private:
+        help += PRIVATE_HELP_MESSAGE
 
     reply = ""
     matched = True
