@@ -32,6 +32,7 @@ tokenizer = TOKENIZER(WORD_NAME, UNKNOWN_CHAR=UNKNOWN_CHAR)
 
 NO_NEWLINE = -999999999
 MAX_REPLY_LEN = 1024
+AVOID_REPEAT = '，。：？！'
 
 args = types.SimpleNamespace()
 args.RUN_DEVICE = "cuda"  # 'cpu' (already very fast) // 'cuda'
@@ -57,21 +58,28 @@ model = RWKV_RNN(args)
 
 
 model_tokens = []
-current_state = None
+model_state = None
+
+
+AVOID_REPEAT_TOKENS = []
+for i in AVOID_REPEAT:
+    dd = tokenizer.tokenizer.encode(i)
+    assert len(dd) == 1
+    AVOID_REPEAT_TOKENS += dd
 
 
 def run_rnn(tokens, nl_bias=0):
-    global model_tokens, current_state
-    for i in range(len(tokens)):
-        model_tokens += [int(tokens[i])]
-        if i == len(tokens) - 1:
-            out, current_state = model.forward(model_tokens, current_state)
-        else:
-            current_state = model.forward(
-                model_tokens, current_state, preprocess_only=True)
+    global model_tokens, model_state
+
+    tokens = [int(x) for x in tokens]
+    model_tokens += tokens
+    out, model_state = model.forward(tokens, model_state)
 
     out[0] = NO_NEWLINE
     out[187] += nl_bias
+
+    if model_tokens[-1] in AVOID_REPEAT_TOKENS:
+        out[model_tokens[-1]] = NO_NEWLINE
 
     return out
 
@@ -84,22 +92,22 @@ def save_all_state(uid, channel, last_out):
     n = f'{uid}_{channel}'
     all_state[n] = {}
     all_state[n]['out'] = last_out
-    all_state[n]['rnn'] = copy.deepcopy(current_state)
+    all_state[n]['rnn'] = copy.deepcopy(model_state)
     all_state[n]['token'] = copy.deepcopy(model_tokens)
 
 
 def load_all_state(uid, channel):
-    global all_state, model_tokens, current_state
+    global all_state, model_tokens, model_state
     n = f'{uid}_{channel}'
-    current_state = copy.deepcopy(all_state[n]['rnn'])
+    model_state = copy.deepcopy(all_state[n]['rnn'])
     model_tokens = copy.deepcopy(all_state[n]['token'])
     return all_state[n]['out']
 
 
 def clear_current_state():
-    global model_tokens, current_state
+    global model_tokens, model_state
     model_tokens = []
-    current_state = None
+    model_state = None
 
 
 def init_run():
@@ -147,7 +155,7 @@ def on_reset(user: User) -> str:
 
 
 def on_generate(user: User, message: str, mode: str = "") -> str:
-    global model_tokens, current_state, last_message
+    global model_tokens, model_state, last_message
 
     msg = message.replace("\r\n", '\n').replace('\\n', '\n').strip()
     if len(msg) > 1024:
@@ -171,7 +179,7 @@ def on_generate(user: User, message: str, mode: str = "") -> str:
         if mode == "qa":
             next = f"\nQuestion: {msg.strip()}?\n\nExpert Full Answer:\n"
 
-        current_state = None
+        model_state = None
         out = run_rnn(tokenizer.tokenizer.encode(next))
         save_all_state(user.id, "gen_0", out)
 
@@ -211,7 +219,7 @@ def on_generate(user: User, message: str, mode: str = "") -> str:
 
 
 def on_message(user: User, message: str, alt: bool = False) -> str:
-    global model_tokens, current_state
+    global model_tokens, model_state
 
     msg = message.replace('\r\n', '\n').replace('\\n', '\n').strip()
     if len(msg) > 1024:
