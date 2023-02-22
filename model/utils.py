@@ -1,10 +1,14 @@
-import json, time, random, os
+import json
+import time
+import random
+import os
 import numpy as np
 import torch
 from torch.nn import functional as F
 
 time_slot = {}
 time_ref = time.time_ns()
+
 
 def record_time(name):
     if name not in time_slot:
@@ -13,13 +17,15 @@ def record_time(name):
     if tt < time_slot[name]:
         time_slot[name] = tt
 
+
 class TOKENIZER():
     def __init__(self, WORD_NAME, UNKNOWN_CHAR='\ue083'):
         if 'list' in str(type(WORD_NAME)):
             self.charMode = False
             if WORD_NAME[0] == WORD_NAME[1]:
                 from transformers import PreTrainedTokenizerFast
-                self.tokenizer = PreTrainedTokenizerFast(tokenizer_file=WORD_NAME[0])
+                self.tokenizer = PreTrainedTokenizerFast(
+                    tokenizer_file=WORD_NAME[0])
             else:
                 from transformers import GPT2TokenizerFast
                 self.tokenizer = GPT2TokenizerFast(WORD_NAME[0], WORD_NAME[1])
@@ -45,6 +51,17 @@ class TOKENIZER():
         if context == '':
             context = '\n'
         return context
+
+    def alpha_logits(self, out, counter, alpha_frequency=1.0, alpha_presence=1.0):
+        if os.environ["RWKV_RUN_DEVICE"] == "cpu":
+            counter = np.array(counter)
+            presense = np.greater(
+                counter, np.zeros_like(counter)).astype(float)
+            return out - counter * alpha_frequency - presense * alpha_presence
+        else:
+            counter = torch.tensor(counter, device=out.device)
+            presense = torch.gt(counter, torch.zeros_like(counter)).float()
+            return out - counter * alpha_frequency - presense * alpha_presence
 
     def sample_logits(self, out, x, ctx_len, temperature=1.0, top_p_usual=None, top_p_newline=None):
         # out[self.UNKNOWN_CHAR] = -float('Inf')
@@ -80,6 +97,7 @@ class TOKENIZER():
                 probs = probs.pow(1.0 / temperature)
             out = torch.multinomial(probs, num_samples=1)[0]
             return out
+
 
 def MaybeIsPrime(number):
     if FermatPrimalityTest(number) and MillerRabinPrimalityTest(number):

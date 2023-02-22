@@ -185,9 +185,11 @@ def on_generate(user: User, message: str, mode: str = "") -> str:
 
     reply = ""
 
+    counter = [0] * tokenizer.vocab_size
     begin = len(model_tokens)
     out_last = begin
     for i in range(150):
+        out = tokenizer.alpha_logits(out, counter)
         token = tokenizer.sample_logits(
             out,
             model_tokens,
@@ -197,6 +199,7 @@ def on_generate(user: User, message: str, mode: str = "") -> str:
             top_p_newline=x_top_p,
         )
         out = run_rnn([token])
+        counter[int(token)] += 1
 
         xxx = tokenizer.tokenizer.decode(model_tokens[out_last:])
         if '\ufffd' not in xxx:
@@ -244,6 +247,8 @@ def on_message(user: User, message: str, alt: bool = False) -> str:
             return ""
 
     reply = ""
+
+    counter = [0] * tokenizer.vocab_size
     begin = len(model_tokens)
     out_last = begin
     for i in range(MAX_REPLY_LEN):
@@ -255,6 +260,8 @@ def on_message(user: User, message: str, alt: bool = False) -> str:
             nl_bias = 0
         else:
             nl_bias = (i - 130) * 0.25
+
+        out = tokenizer.alpha_logits(out, counter)
         token = tokenizer.sample_logits(
             out,
             model_tokens,
@@ -264,6 +271,7 @@ def on_message(user: User, message: str, alt: bool = False) -> str:
             top_p_newline=x_top_p
         )
         out = run_rnn([token], nl_bias=nl_bias)
+        counter[int(token)] += 1
 
         xxx = tokenizer.tokenizer.decode(model_tokens[out_last:])
         if '\ufffd' not in xxx:
