@@ -145,7 +145,7 @@ def read_sampler_params(message):
 
     x_temp = clamp(x_temp, 0.2, 5)
     x_top_p = max(0, x_top_p)
-    return x_temp, x_top_p
+    return message, x_temp, x_top_p
 
 
 def on_reset(user: User) -> str:
@@ -161,7 +161,7 @@ def on_generate(user: User, message: str, mode: str = "") -> str:
     if len(msg) > 1024:
         return "Your message is too long! (max 1024 tokens)"
 
-    x_temp, x_top_p = read_sampler_params(msg)
+    msg, x_temp, x_top_p = read_sampler_params(msg)
 
     if mode == "retry":
         try:
@@ -185,7 +185,7 @@ def on_generate(user: User, message: str, mode: str = "") -> str:
 
     reply = ""
 
-    counter = [0] * tokenizer.vocab_size
+    counter = torch.zeros_like(out, device=out.device)
     begin = len(model_tokens)
     out_last = begin
     for i in range(150):
@@ -228,7 +228,7 @@ def on_message(user: User, message: str, alt: bool = False) -> str:
     if len(msg) > 1024:
         return "Your message is too long! (max 1024 tokens)"
 
-    x_temp, x_top_p = read_sampler_params(msg)
+    msg, x_temp, x_top_p = read_sampler_params(msg)
 
     if not alt:
         try:
@@ -248,7 +248,7 @@ def on_message(user: User, message: str, alt: bool = False) -> str:
 
     reply = ""
 
-    counter = [0] * tokenizer.vocab_size
+    counter = torch.zeros_like(out, device=out.device)
     begin = len(model_tokens)
     out_last = begin
     for i in range(MAX_REPLY_LEN):

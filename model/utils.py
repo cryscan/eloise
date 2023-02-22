@@ -52,16 +52,10 @@ class TOKENIZER():
             context = '\n'
         return context
 
-    def alpha_logits(self, out, counter, alpha_frequency=1.0, alpha_presence=1.0):
-        if os.environ["RWKV_RUN_DEVICE"] == "cpu":
-            counter = np.array(counter)
-            presense = np.greater(
-                counter, np.zeros_like(counter)).astype(float)
-            return out - counter * alpha_frequency - presense * alpha_presence
-        else:
-            counter = torch.tensor(counter, device=out.device)
-            presense = torch.gt(counter, torch.zeros_like(counter)).float()
-            return out - counter * alpha_frequency - presense * alpha_presence
+    def alpha_logits(self, out, counter, alpha_frequency=0.5, alpha_presence=0.2):
+        counter = torch.tensor(counter, device=out.device)
+        presense = torch.gt(counter, torch.zeros_like(counter)).float()
+        return out - counter * alpha_frequency - presense * alpha_presence
 
     def sample_logits(self, out, x, ctx_len, temperature=1.0, top_p_usual=None, top_p_newline=None):
         # out[self.UNKNOWN_CHAR] = -float('Inf')

@@ -124,7 +124,7 @@ def post_data():
 
             received_messages.add(message_id)
             requests.get(
-                f"http://127.0.0.1:5700/send_group_msg?group_id={group_id}&message={reply}")
+                f"http://127.0.0.1:5700/send_group_msg?group_id={group_id}&message=[CQ:at,qq={user.id}]\n{reply}")
 
     return 'OK'
 
