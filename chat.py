@@ -290,4 +290,6 @@ def on_message(user: User, message: str, alt: bool = False) -> str:
     save_all_state(user.id, "chat", out)
 
     reply = reply.replace(user.name(), user.nickname)
+    reply = reply.replace(user.name().lower(), user.nickname)
+    reply = reply.replace(user.name().upper(), user.nickname)
     return reply
