@@ -30,13 +30,16 @@ MAX_REPLY_LEN = 1024
 AVOID_REPEAT = '，。：？！'
 
 args = types.SimpleNamespace()
-# args.RUN_DEVICE = "cuda"  # 'cpu' (already very fast) // 'cuda'
-# fp32 (good for CPU) // fp16 (recommended for GPU) // bf16 (less accurate)
-args.FLOAT_MODE = "fp16"
 
-args.DEVICES = ["cuda", "cpu"]
-args.DTYPES = ["fp16", "fp32"]
-args.LAYER_SEPARATION = 33
+# args.strategy = 'cpu fp32'
+# args.strategy = 'cuda fp16'
+# args.strategy = 'cuda fp16 *8 -> cpu fp32'
+# args.strategy = 'cuda fp16 *6+'
+# args.strategy = 'cuda fp16 *0+ -> cpu fp32 *1'
+args.strategy = 'cuda fp16 *33 -> cpu fp32'
+
+# args.MODEL_NAME = '/root/autodl-tmp/Models/RWKV-4-Pile-7B-20221115-8047'
+args.MODEL_NAME = '/root/autodl-tmp/Models/RWKV-4-Pile-14B-20230213-8019'
 
 args.vocab_size = 50277
 args.head_qk = 0
@@ -44,8 +47,6 @@ args.pre_ffn = 0
 args.grad_cp = 0
 args.my_pos_emb = 0
 
-# args.MODEL_NAME = '/root/autodl-tmp/Models/RWKV-4-Pile-7B-20221115-8047'
-args.MODEL_NAME = '/root/autodl-tmp/Models/RWKV-4-Pile-14B-20230213-8019'
 args.n_layer = 40   # 32
 args.n_embd = 5120  # 4096
 args.ctx_len = 1024
@@ -54,7 +55,7 @@ args.ctx_len = 1024
 # Load Model
 print(f"Loading... {args.MODEL_NAME}")
 # os.environ["RWKV_RUN_DEVICE"] = args.RUN_DEVICE
-model = RWKV(args)
+model = RWKV(model=args.MODEL_NAME, strategy=args.strategy)
 
 
 model_tokens = []
