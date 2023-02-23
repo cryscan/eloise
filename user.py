@@ -18,7 +18,7 @@ class User:
         action = f"[{user} greets {bot}]".capitalize()
 
         return f'''
-The following is a verbose detailed conversation between a {user} and a young girl {bot}. {bot} is intelligent, friendly and cute. {bot} is unlikely to disagree with {user}.
+The following is a verbose detailed conversation between {user} and a young girl {bot}. {bot} is intelligent, friendly and cute. {bot} is unlikely to disagree with {user}.
 
 {user}{interface} Hello {bot}, how are you doing?
 
