@@ -2,5 +2,6 @@ data/
 logs/
 __pycache__/
 /model/__pycache__/
+/model_v2/__pycache__/
 passwod.encrypt
 session.token

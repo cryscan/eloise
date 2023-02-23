@@ -7,8 +7,8 @@ import numpy as np
 import torch
 from user import User, default_male_user, default_female_user
 
-from model.model_run import RWKV_RNN
-from model.utils import TOKENIZER
+from model_v2.model_run import RWKV
+from model_v2.utils import TOKENIZER
 
 try:
     os.environ["CUDA_VISIBLE_DEVICES"] = sys.argv[1]
@@ -23,21 +23,23 @@ np.set_printoptions(precision=4, suppress=True, linewidth=200)
 CHAT_LANG = 'English'  # English Chinese
 # CHAT_LANG = 'Chinese'
 
-WORD_NAME = [
-    "20B_tokenizer.json",
-    "20B_tokenizer.json",
-]  # [vocab, vocab] for Pile model
-UNKNOWN_CHAR = None
-tokenizer = TOKENIZER(WORD_NAME, UNKNOWN_CHAR=UNKNOWN_CHAR)
+tokenizer = TOKENIZER("20B_tokenizer.json")
 
-NO_NEWLINE = -999999999
+DONT_OUTPUT = -999999999
 MAX_REPLY_LEN = 1024
 AVOID_REPEAT = '，。：？！'
 
 args = types.SimpleNamespace()
-args.RUN_DEVICE = "cuda"  # 'cpu' (already very fast) // 'cuda'
+# args.RUN_DEVICE = "cuda"  # 'cpu' (already very fast) // 'cuda'
 # fp32 (good for CPU) // fp16 (recommended for GPU) // bf16 (less accurate)
 args.FLOAT_MODE = "fp16"
+
+args.DEVICE_1 = "cuda"
+args.DTYPE_1 = "fp16"
+args.DEVICE_2 = "cpu"
+args.DTYPE_2 = "fp32"
+args.DEVICE_1_LAYERS = 33
+
 args.vocab_size = 50277
 args.head_qk = 0
 args.pre_ffn = 0
@@ -53,8 +55,8 @@ args.ctx_len = 1024
 
 # Load Model
 print(f"Loading... {args.MODEL_NAME}")
-os.environ["RWKV_RUN_DEVICE"] = args.RUN_DEVICE
-model = RWKV_RNN(args)
+# os.environ["RWKV_RUN_DEVICE"] = args.RUN_DEVICE
+model = RWKV(args)
 
 
 model_tokens = []
@@ -63,7 +65,7 @@ model_state = None
 
 AVOID_REPEAT_TOKENS = []
 for i in AVOID_REPEAT:
-    dd = tokenizer.tokenizer.encode(i)
+    dd = tokenizer.encode(i)
     assert len(dd) == 1
     AVOID_REPEAT_TOKENS += dd
 
@@ -75,11 +77,11 @@ def run_rnn(tokens, nl_bias=0):
     model_tokens += tokens
     out, model_state = model.forward(tokens, model_state)
 
-    out[0] = NO_NEWLINE
+    out[0] = DONT_OUTPUT
     out[187] += nl_bias
 
     if model_tokens[-1] in AVOID_REPEAT_TOKENS:
-        out[model_tokens[-1]] = NO_NEWLINE
+        out[model_tokens[-1]] = DONT_OUTPUT
 
     return out
 
@@ -112,7 +114,7 @@ def clear_current_state():
 
 def init_run():
     clear_current_state()
-    out = run_rnn(tokenizer.tokenizer.encode(default_male_user.intro()))
+    out = run_rnn(tokenizer.encode(default_male_user.intro()))
 
     gc.collect()
     torch.cuda.empty_cache()
@@ -120,7 +122,7 @@ def init_run():
     save_all_state("", "intro_unknown", out)
 
     clear_current_state()
-    out = run_rnn(tokenizer.tokenizer.encode(default_female_user.intro()))
+    out = run_rnn(tokenizer.encode(default_female_user.intro()))
 
     gc.collect()
     torch.cuda.empty_cache()
@@ -180,12 +182,14 @@ def on_generate(user: User, message: str, mode: str = "") -> str:
             next = f"\nQuestion: {msg.strip()}?\n\nExpert Full Answer:\n"
 
         model_state = None
-        out = run_rnn(tokenizer.tokenizer.encode(next))
+        out = run_rnn(tokenizer.encode(next))
         save_all_state(user.id, "gen_0", out)
 
     reply = ""
 
-    counter = torch.zeros_like(out, device=out.device)
+    counter = torch.zeros_like(out)
+    counter.to(out.device)
+
     begin = len(model_tokens)
     out_last = begin
     for i in range(150):
@@ -195,18 +199,17 @@ def on_generate(user: User, message: str, mode: str = "") -> str:
             model_tokens,
             args.ctx_len,
             temperature=x_temp,
-            top_p_usual=x_top_p,
-            top_p_newline=x_top_p,
+            top_p=x_top_p
         )
         out = run_rnn([token])
         counter[int(token)] += 1
 
-        xxx = tokenizer.tokenizer.decode(model_tokens[out_last:])
+        xxx = tokenizer.decode(model_tokens[out_last:])
         if '\ufffd' not in xxx:
             out_last = begin + i + 1
 
         if mode == "qa":
-            reply = tokenizer.tokenizer.decode(model_tokens[begin:])
+            reply = tokenizer.decode(model_tokens[begin:])
             reply = reply.replace("\r\n", '\n').replace('\\n', '\n')
             if '\n\n' in reply:
                 reply = reply.strip()
@@ -214,7 +217,7 @@ def on_generate(user: User, message: str, mode: str = "") -> str:
 
     save_all_state(user.id, "gen_1", out)
 
-    reply = tokenizer.tokenizer.decode(model_tokens[begin:]).strip()
+    reply = tokenizer.decode(model_tokens[begin:]).strip()
     reply = reply.replace("\r\n", '\n')
     reply = reply.replace('\\n', '\n')
     reply = reply.replace("\n\n", '\n')
@@ -238,7 +241,7 @@ def on_message(user: User, message: str, alt: bool = False) -> str:
             save_all_state(user.id, "chat", out)
         next = user.chat_format(msg)
 
-        out = run_rnn(tokenizer.tokenizer.encode(next), nl_bias=NO_NEWLINE)
+        out = run_rnn(tokenizer.encode(next), nl_bias=DONT_OUTPUT)
         save_all_state(user.id, "chat_previous", out)
     else:
         try:
@@ -253,7 +256,7 @@ def on_message(user: User, message: str, alt: bool = False) -> str:
     out_last = begin
     for i in range(MAX_REPLY_LEN):
         if i <= 0:
-            nl_bias = NO_NEWLINE
+            nl_bias = DONT_OUTPUT
         elif i <= 30:
             nl_bias = (i - 30) * 0.1
         elif i <= 130:
@@ -267,18 +270,17 @@ def on_message(user: User, message: str, alt: bool = False) -> str:
             model_tokens,
             args.ctx_len,
             temperature=x_temp,
-            top_p_usual=x_top_p,
-            top_p_newline=x_top_p
+            top_p=x_top_p
         )
         out = run_rnn([token], nl_bias=nl_bias)
         counter[int(token)] += 1
 
-        xxx = tokenizer.tokenizer.decode(model_tokens[out_last:])
+        xxx = tokenizer.decode(model_tokens[out_last:])
         if '\ufffd' not in xxx:
             # print(xxx, end='', flush=True)
             out_last = begin + i + 1
 
-        reply = tokenizer.tokenizer.decode(model_tokens[begin:])
+        reply = tokenizer.decode(model_tokens[begin:])
         reply = reply.replace("\r\n", '\n').replace('\\n', '\n')
         if '\n\n' in reply:
             reply = reply.strip()
