@@ -105,8 +105,6 @@ def post_data():
 
         if matched:
             print(f"{user.nickname}({user.id}): {message}")
-            print(reply)
-
             received_messages.add(message_id)
             requests.get(
                 f"http://127.0.0.1:5700/send_private_msg?user_id={user.id}&message={reply}")
@@ -120,8 +118,6 @@ def post_data():
         reply, matched = commands(user, message, enable_chat, is_private=False)
         if matched:
             print(f"{group_id}: {user.nickname}({user.id}): {message}")
-            print(reply)
-
             received_messages.add(message_id)
             requests.get(
                 f"http://127.0.0.1:5700/send_group_msg?group_id={group_id}&message=[CQ:at,qq={user.id}]\n{reply}")

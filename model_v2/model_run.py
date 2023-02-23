@@ -38,9 +38,9 @@ class RWKV(MyModule):
         super().__init__()
         
         self.args = args
-        dev = [args.DEVICE_1, args.DEVICE_2]
-        dtype = [args.DTYPE_1, args.DTYPE_2]
-        layer_sep = args.DEVICE_1_LAYERS
+        dev = args.DEVICES
+        dtype = args.DTYPES
+        layer_sep = args.LAYER_SEPARATION
 
         # for fp16 mode: set x = x/2 every X layer (to avoid overflow)
         self.RESCALE_LAYER = 6 if ((get_dtype(dtype[1]) == torch.float16) or (get_dtype(dtype[0]) == torch.float16)) else 0

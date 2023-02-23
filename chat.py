@@ -34,11 +34,9 @@ args = types.SimpleNamespace()
 # fp32 (good for CPU) // fp16 (recommended for GPU) // bf16 (less accurate)
 args.FLOAT_MODE = "fp16"
 
-args.DEVICE_1 = "cuda"
-args.DTYPE_1 = "fp16"
-args.DEVICE_2 = "cpu"
-args.DTYPE_2 = "fp32"
-args.DEVICE_1_LAYERS = 33
+args.DEVICES = ["cuda", "cpu"]
+args.DTYPES = ["fp16", "fp32"]
+args.LAYER_SEPARATION = 33
 
 args.vocab_size = 50277
 args.head_qk = 0
@@ -159,11 +157,12 @@ def on_reset(user: User) -> str:
 def on_generate(user: User, message: str, mode: str = "") -> str:
     global model_tokens, model_state, last_message
 
-    msg = message.replace("\r\n", '\n').replace('\\n', '\n').strip()
-    if len(msg) > 1024:
+    message = message.replace("\r\n", '\n').replace('\\n', '\n').strip()
+    if len(message) > 1024:
         return "Your message is too long! (max 1024 tokens)"
+    print(message)
 
-    msg, x_temp, x_top_p = read_sampler_params(msg)
+    message, x_temp, x_top_p = read_sampler_params(message)
 
     if mode == "retry":
         try:
@@ -177,9 +176,9 @@ def on_generate(user: User, message: str, mode: str = "") -> str:
         except:
             return ""
     else:
-        next = '\n' + msg.strip()
+        next = '\n' + message.strip()
         if mode == "qa":
-            next = f"\nQuestion: {msg.strip()}?\n\nExpert Full Answer:\n"
+            next = f"\nQuestion: {message.strip()}?\n\nExpert Full Answer:\n"
 
         model_state = None
         out = run_rnn(tokenizer.encode(next))
@@ -206,6 +205,7 @@ def on_generate(user: User, message: str, mode: str = "") -> str:
 
         xxx = tokenizer.decode(model_tokens[out_last:])
         if '\ufffd' not in xxx:
+            print(xxx, end='', flush=True)
             out_last = begin + i + 1
 
         if mode == "qa":
@@ -227,11 +227,12 @@ def on_generate(user: User, message: str, mode: str = "") -> str:
 def on_message(user: User, message: str, alt: bool = False) -> str:
     global model_tokens, model_state
 
-    msg = message.replace('\r\n', '\n').replace('\\n', '\n').strip()
-    if len(msg) > 1024:
+    message = message.replace('\r\n', '\n').replace('\\n', '\n').strip()
+    if len(message) > 1024:
         return "Your message is too long! (max 1024 tokens)"
+    print(message)
 
-    msg, x_temp, x_top_p = read_sampler_params(msg)
+    message, x_temp, x_top_p = read_sampler_params(message)
 
     if not alt:
         try:
@@ -239,7 +240,7 @@ def on_message(user: User, message: str, alt: bool = False) -> str:
         except:
             out = load_all_state("", f"intro_{user.sex}")
             save_all_state(user.id, "chat", out)
-        next = user.chat_format(msg)
+        next = user.chat_format(message)
 
         out = run_rnn(tokenizer.encode(next), nl_bias=DONT_OUTPUT)
         save_all_state(user.id, "chat_previous", out)
@@ -277,7 +278,7 @@ def on_message(user: User, message: str, alt: bool = False) -> str:
 
         xxx = tokenizer.decode(model_tokens[out_last:])
         if '\ufffd' not in xxx:
-            # print(xxx, end='', flush=True)
+            print(xxx, end='', flush=True)
             out_last = begin + i + 1
 
         reply = tokenizer.decode(model_tokens[begin:])
