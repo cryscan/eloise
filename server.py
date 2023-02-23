@@ -9,7 +9,7 @@ app = Flask(__name__)
 
 
 banned_groups = []
-chat_groups = [1058164126, 1079546706, 686922858]
+non_chat_groups = [143626394]
 
 HELP_MESSAGE = '''Commands:
 
@@ -112,7 +112,7 @@ def post_data():
         group_id = int(json.get('group_id'))
         if group_id in banned_groups:
             return 'OK'
-        enable_chat = group_id in chat_groups
+        enable_chat = group_id not in non_chat_groups
 
         user = User(sender)
         reply, matched = commands(user, message, enable_chat, is_private=False)
