@@ -11,27 +11,26 @@ app = Flask(__name__)
 banned_groups = []
 non_chat_groups = [143626394]
 
-HELP_MESSAGE = '''Commands:
+HELP_MESSAGE = '''HELP
+Note: <text> means "any text"
 
--h(elp): Show this help
-
--g(en) <text>: Generate text
-
--retry|t: Retry last generation
-
--m(ore): Continue generating more
+---- FREE GENERATION ----
+-h, -help: Show this help
+-g, -gen <text>: Generate text
+-t, -retry: Retry last generation
+-m, -more: Continue generating more
 '''
 
 MORE_HELP_MESSAGE = '''
 -qa <text>: Ask questions
 
--reset|s: Reset your chat chain
-
+---- CHAT WITH CONTEXT ----
+-s, reset: Reset your chat chain
 -alt: Alternative reply
 '''
 
 CHAT_HELP_MESSAGE = '''
--c(hat) <text>: Chat with me
+-c, -chat <text>: Chat with me
 '''
 PRIVATE_HELP_MESSAGE = '''
 <text>: Chat with me
