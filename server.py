@@ -25,7 +25,7 @@ MORE_HELP_MESSAGE = '''
 -qa <text>: Ask questions
 
 ---- CHAT WITH CONTEXT ----
--s, reset: Reset your chat chain
+-s, -reset: Reset your chat chain
 -alt: Alternative reply
 '''
 
