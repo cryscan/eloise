@@ -20,6 +20,11 @@ torch.backends.cudnn.allow_tf32 = True
 torch.backends.cuda.matmul.allow_tf32 = True
 np.set_printoptions(precision=4, suppress=True, linewidth=200)
 
+# '1' or '0', please use torch 1.13+ and benchmark speed
+os.environ["RWKV_JIT_ON"] = '1'
+# '1' : use CUDA kernel for seq mode (much faster)
+os.environ["RWKV_CUDA_ON"] = '1'
+
 CHAT_LANG = 'English'  # English Chinese
 # CHAT_LANG = 'Chinese'
 
