@@ -2,17 +2,29 @@ from flask import Flask, request
 import requests
 import chat
 import re
+import datetime
+import logging
 
 from user import User
 
 app = Flask(__name__)
 
 
+formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
+handler = logging.FileHandler(f"logs/eloise-{datetime.date.today()}.txt")
+handler.setFormatter(formatter)
+
+logger = logging.getLogger("eloise")
+logger.addHandler(handler)
+logger.setLevel(logging.INFO)
+
+
+banned_users = []
 banned_groups = []
 non_chat_groups = [143626394]
 
-HELP_MESSAGE = '''HELP
-Note: <text> means "any text"
+HELP_MESSAGE = '''Note: <text> means "any text"
+It's recommanded to ASK her more!
 
 ---- FREE GENERATION ----
 -h, -help: Show this help
@@ -59,6 +71,7 @@ def commands(user: User, message, enable_chat=False, is_private=False):
     if is_private:
         help += PRIVATE_HELP_MESSAGE
 
+    prompt = message
     reply = ""
     matched = True
 
@@ -69,21 +82,24 @@ def commands(user: User, message, enable_chat=False, is_private=False):
     elif more_match:
         reply = chat.on_generate(user, "", mode="more")
     elif gen_match:
-        reply = chat.on_generate(user, message[gen_match.end():])
+        prompt = message[gen_match.end():]
+        reply = chat.on_generate(user, prompt, prompt)
     elif enable_chat and qa_match:
-        reply = chat.on_generate(user, message[qa_match.end():], mode="qa")
+        prompt = message[qa_match.end():]
+        reply = chat.on_generate(user, prompt, mode="qa")
     elif enable_chat and reset_match:
         reply = chat.on_reset(user)
     elif enable_chat and alt_match:
         reply = chat.on_message(user, "", alt=True)
     elif enable_chat and is_private:
-        reply = chat.on_message(user, message)
+        reply = chat.on_message(user, prompt)
     elif enable_chat and not is_private and chat_match:
-        reply = chat.on_message(user, message[chat_match.end():])
+        prompt = message[chat_match.end():]
+        reply = chat.on_message(user, prompt)
     else:
         matched = False
 
-    return reply, matched
+    return matched, prompt, reply
 
 
 @app.route('/', methods=["POST"])
@@ -99,11 +115,15 @@ def post_data():
 
     if type == 'private':
         user = User(sender)
-        reply, matched = commands(
+        if user in banned_users:
+            return 'OK'
+
+        matched, prompt, reply = commands(
             user, message, enable_chat=True, is_private=True)
 
         if matched:
-            print(f"{user.nickname}({user.id}): {message}")
+            logger.info(f"{user.nickname}({user.id}): {prompt}")
+            logger.info(reply)
             received_messages.add(message_id)
             requests.get(
                 f"http://127.0.0.1:5700/send_private_msg?user_id={user.id}&message={reply}")
@@ -114,9 +134,14 @@ def post_data():
         enable_chat = group_id not in non_chat_groups
 
         user = User(sender)
-        reply, matched = commands(user, message, enable_chat, is_private=False)
+        if user.id in banned_users:
+            return 'OK'
+
+        matched, prompt, reply = commands(
+            user, message, enable_chat, is_private=False)
         if matched:
-            print(f"{group_id}: {user.nickname}({user.id}): {message}")
+            logger.info(f"{group_id}: {user.nickname}({user.id}): {prompt}")
+            logger.info(reply)
             received_messages.add(message_id)
             requests.get(
                 f"http://127.0.0.1:5700/send_group_msg?group_id={group_id}&message=[CQ:at,qq={user.id}]\n{reply}")
