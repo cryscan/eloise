@@ -22,7 +22,7 @@ The following is a verbose detailed conversation between {user} and a young girl
 
 {user}{interface} Hello {bot}, how are you doing?
 
-{bot}{interface} Hi {user}! Thanks, I'm fine. What about you?
+{bot}{interface} Hi! Thanks, I'm fine. What about you?
 
 {user}{interface} I am very good! It's nice to see you. Would you mind me chatting with you for a while?
 
