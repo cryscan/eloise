@@ -137,7 +137,7 @@ class RWKV(MyModule):
                         if i == stream_i and n - (0 if i == 0 else plan[i-1]) >= (plan[i] - stream_count):
                             strategy[n].stream = True
                         break
-                print(f"{n}-{strategy[n].device}-{str(strategy[n].dtype).replace('torch.','')}{'-stream' if strategy[n].stream else ''}",end=' ')
+                print(f"{n}-{strategy[n].device}-{str(strategy[n].dtype).replace('torch.','')}{'-stream' if strategy[n].stream else ''}")
             print()
 
             # Load weights
