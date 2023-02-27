@@ -38,6 +38,7 @@ MORE_HELP_MESSAGE = '''
 
 ---- CHAT WITH CONTEXT ----
 -s, -reset: Reset your chat chain
+-sc: Reset to Chinese mode
 -alt: Alternative reply
 '''
 
@@ -60,6 +61,7 @@ def commands(user: User, message, enable_chat=False, is_private=False):
     qa_match = re.match("\-qa\s+", message)
 
     reset_match = re.match("\-(reset|s)", message)
+    reset_chinese_match = re.match("\-sc", message)
     alt_match = re.match("\-alt", message)
     chat_match = re.match("\-c(hat)?\s+", message)
 
@@ -87,8 +89,10 @@ def commands(user: User, message, enable_chat=False, is_private=False):
     elif enable_chat and qa_match:
         prompt = message[qa_match.end():]
         reply = chat.on_generate(user, prompt, mode="qa")
+    elif enable_chat and reset_chinese_match:
+        reply = chat.on_reset(user, cn=True)
     elif enable_chat and reset_match:
-        reply = chat.on_reset(user)
+        reply = chat.on_reset(user, cn=False)
     elif enable_chat and alt_match:
         reply = chat.on_message(user, "", alt=True)
     elif enable_chat and is_private:

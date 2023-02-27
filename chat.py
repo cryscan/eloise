@@ -120,17 +120,36 @@ def init_run():
     clear_current_state()
     out = run_rnn(tokenizer.encode(default_male_user.intro()))
 
+    print("Loading intro male...")
     gc.collect()
     torch.cuda.empty_cache()
     save_all_state("", "intro_male", out)
     save_all_state("", "intro_unknown", out)
 
+    print("Loading intro female...")
     clear_current_state()
     out = run_rnn(tokenizer.encode(default_female_user.intro()))
 
     gc.collect()
     torch.cuda.empty_cache()
     save_all_state("", "intro_female", out)
+
+    # print("Loading intro male chinese...")
+    # clear_current_state()
+    # out = run_rnn(tokenizer.encode(default_male_user.intro_cn()))
+
+    # gc.collect()
+    # torch.cuda.empty_cache()
+    # save_all_state("", "intro_cn_male", out)
+    # save_all_state("", "intro_cn_unknown", out)
+
+    # print("Loading intro female chinese...")
+    # clear_current_state()
+    # out = run_rnn(tokenizer.encode(default_female_user.intro_cn()))
+
+    # gc.collect()
+    # torch.cuda.empty_cache()
+    # save_all_state("", "intro_cn_female", out)
 
 
 def clamp(n, minimum, maximum):
@@ -154,10 +173,11 @@ def read_sampler_params(message):
     return message, x_temp, x_top_p
 
 
-def on_reset(user: User) -> str:
+def on_reset(user: User, cn: bool = False) -> str:
     out = load_all_state("", f"intro_{user.sex}")
+    reply = f"Chat reset for {user.nickname}."
     save_all_state(user.id, "chat", out)
-    return f"Chat reset for {user.nickname}."
+    return reply
 
 
 def on_generate(user: User, message: str, mode: str = "") -> str:
