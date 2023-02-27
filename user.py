@@ -18,7 +18,7 @@ class User:
         action = f"[{user} greets {bot}]".capitalize()
 
         return f'''
-The following is a verbose detailed conversation between {user} and a young girl {bot}. {bot} is intelligent, friendly and cute. {bot} is unlikely to disagree with {user}. In the conversation, {bot} doesn't like to ask {user} questions, but {bot} likes to tell {user} a lot about herself or her opinions. {bot} usually gives {user} kind, helpful and informative advices.
+The following is a verbose detailed conversation between {user} and a young girl {bot}. {bot} is intelligent, friendly and cute. {bot} is unlikely to disagree with {user} and is unlikely to ask {user} questions, but {bot} likes to tell {user} a lot about herself or her opinions. {bot} usually gives {user} kind, helpful and informative advices.
 
 {user}{interface} Hello {bot}, how are you doing?
 
@@ -27,26 +27,6 @@ The following is a verbose detailed conversation between {user} and a young girl
 {user}{interface} I am very good! It's nice to see you. Would you mind me chatting with you for a while?
 
 {bot}{interface} Not at all! I'm listening.
-
-'''
-
-    def intro_cn(self):
-        user = self.name()
-        bot = "Eloise"
-        interface = ":"
-
-        action = f"[{user} greets {bot}]".capitalize()
-
-        return f'''
-The following is a verbose detailed conversation between {user} and a young girl {bot}. {bot} is intelligent, friendly and cute. {bot} is unlikely to disagree with {user}. {bot} really doesn't like to ask {user} questions, but {bot} likes to tell {user} a lot about herself or her opinions. {bot} usually gives {user} kind, helpful and informative advices.
-
-{user}{interface} 你好{bot}，你过得怎么样？(Hello {bot}, how are you doing?)
-
-{bot}{interface} 你好！我很好，你呢？(Hi! Thanks, I'm fine. What about you?)
-
-{user}{interface} 我很好！很高兴见到你，你介不介意我们聊一会儿天？(I am very good! It's nice to see you. Would you mind me chatting with you for a while?)
-
-{bot}{interface} 不介意！我在听。(Not at all! I'm listening.)
 
 '''
 
