@@ -24,7 +24,11 @@ banned_groups = []
 non_chat_groups = [143626394]
 
 HELP_MESSAGE = '''Note: <text> means "any text"
+
 It's recommanded to ASK her more!
+Example starting:
+1. What's your interesting news today?
+2. I heard you are a <expert>. Can I ask you some questions?
 
 ---- FREE GENERATION ----
 -h, -help: Show this help
@@ -38,16 +42,11 @@ MORE_HELP_MESSAGE = '''
 
 ---- CHAT WITH CONTEXT ----
 -s, -reset: Reset your chat chain
--sc: Reset to Chinese mode
 -alt: Alternative reply
 '''
 
-CHAT_HELP_MESSAGE = '''
--c, -chat <text>: Chat with me
-'''
-PRIVATE_HELP_MESSAGE = '''
-<text>: Chat with me
-'''
+CHAT_HELP_MESSAGE = "-c, -chat <text>: Chat with me"
+PRIVATE_HELP_MESSAGE = "<text>: Chat with me"
 
 received_messages = set()
 
