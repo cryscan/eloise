@@ -1,6 +1,7 @@
 data/
 logs/
 dumps/
+.vscode/
 __pycache__/
 /model/__pycache__/
 passwod.encrypt
