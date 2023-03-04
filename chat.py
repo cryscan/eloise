@@ -7,8 +7,8 @@ import numpy as np
 import torch
 from user import User, default_male_user, default_female_user
 
-from model_v2.model_run import RWKV
-from model_v2.utils import TOKENIZER
+from model.model_run import RWKV
+from model.utils import TOKENIZER
 
 try:
     os.environ["CUDA_VISIBLE_DEVICES"] = sys.argv[1]
