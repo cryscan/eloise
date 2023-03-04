@@ -134,23 +134,6 @@ def init_run():
     torch.cuda.empty_cache()
     save_all_state("", "intro_female", out)
 
-    # print("Loading intro male chinese...")
-    # clear_current_state()
-    # out = run_rnn(tokenizer.encode(default_male_user.intro_cn()))
-
-    # gc.collect()
-    # torch.cuda.empty_cache()
-    # save_all_state("", "intro_cn_male", out)
-    # save_all_state("", "intro_cn_unknown", out)
-
-    # print("Loading intro female chinese...")
-    # clear_current_state()
-    # out = run_rnn(tokenizer.encode(default_female_user.intro_cn()))
-
-    # gc.collect()
-    # torch.cuda.empty_cache()
-    # save_all_state("", "intro_cn_female", out)
-
 
 def clamp(n, minimum, maximum):
     return max(minimum, min(n, maximum))
@@ -317,3 +300,7 @@ def on_message(user: User, message: str, alt: bool = False) -> str:
     reply = reply.replace(user.name().lower(), user.nickname)
     reply = reply.replace(user.name().upper(), user.nickname)
     return reply
+
+
+if __name__ == "__main__":
+    init_run()
