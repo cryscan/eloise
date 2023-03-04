@@ -21,7 +21,7 @@ else:
 
 if os.environ.get('RWKV_CUDA_ON') == '1':
     from torch.utils.cpp_extension import load
-    wkv_cuda = load(name=f"wkv_x", sources=["model_v2/cuda/wkv_op.cpp", "model_v2/cuda/wkv_cuda.cu"], verbose=True, extra_cuda_cflags=["--use_fast_math", "-O3"])
+    wkv_cuda = load(name=f"wkv_x", sources=["model/cuda/wkv_op.cpp", "model/cuda/wkv_cuda.cu"], verbose=True, extra_cuda_cflags=["--use_fast_math", "-O3"])
 
     class WKV(torch.autograd.Function):
         @staticmethod
