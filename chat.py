@@ -212,9 +212,7 @@ def on_generate(user: User, message: str, mode: str = "") -> str:
 
     reply = ""
 
-    counter = torch.zeros_like(out)
-    counter.to(out.device)
-
+    counter = torch.zeros_like(out, device=out.device)
     begin = len(model_tokens)
     out_last = begin
     for i in range(150):
