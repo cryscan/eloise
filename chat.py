@@ -105,6 +105,8 @@ def save_all_state(uid, channel, last_out):
 
 def load_all_state(uid, channel):
     global all_state, model_tokens, model_state
+    clear_current_state()
+
     n = f'{uid}_{channel}'
     model_state = copy.deepcopy(all_state[n]['rnn'])
     model_tokens = copy.deepcopy(all_state[n]['token'])
@@ -115,24 +117,22 @@ def clear_current_state():
     global model_tokens, model_state
     model_tokens = []
     model_state = None
+    gc.collect()
+    torch.cuda.empty_cache()
 
 
 def init_run():
+    print("Loading intro male...")
     clear_current_state()
     out = run_rnn(tokenizer.encode(default_male_user.intro()))
-
-    print("Loading intro male...")
-    gc.collect()
-    torch.cuda.empty_cache()
+    clear_current_state()
     save_all_state("", "intro_male", out)
     save_all_state("", "intro_unknown", out)
 
     print("Loading intro female...")
     clear_current_state()
     out = run_rnn(tokenizer.encode(default_female_user.intro()))
-
-    gc.collect()
-    torch.cuda.empty_cache()
+    clear_current_state()
     save_all_state("", "intro_female", out)
 
 

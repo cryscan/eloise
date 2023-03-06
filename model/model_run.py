@@ -9,11 +9,13 @@ torch.backends.cudnn.benchmark = True
 torch.backends.cudnn.allow_tf32 = True
 torch.backends.cuda.matmul.allow_tf32 = True
 
-if os.environ.get('RWKV_JIT_ON') == '1':
+current_path = os.path.dirname(os.path.abspath(__file__))
+
+if os.environ.get('RWKV_JIT_ON') != '0':
+    os.environ["RWKV_JIT_ON"] = '1'
     MyModule = torch.jit.ScriptModule
     MyFunction = torch.jit.script_method
 else:
-    os.environ["RWKV_JIT_ON"] = '0'
     MyModule = torch.nn.Module
     def __nop(ob):
         return ob
@@ -21,7 +23,7 @@ else:
 
 if os.environ.get('RWKV_CUDA_ON') == '1':
     from torch.utils.cpp_extension import load
-    wkv_cuda = load(name=f"wkv_x", sources=["model/cuda/wkv_op.cpp", "model/cuda/wkv_cuda.cu"], verbose=True, extra_cuda_cflags=["--use_fast_math", "-O3"])
+    wkv_cuda = load(name=f"wkv_cuda", sources=[f"{current_path}/cuda/wkv_op.cpp", f"{current_path}/cuda/wkv_cuda.cu"], verbose=True, extra_cuda_cflags=["--use_fast_math", "-O3", "--extra-device-vectorization"])
 
     class WKV(torch.autograd.Function):
         @staticmethod
@@ -48,6 +50,7 @@ class RWKV(MyModule):
         self.args = types.SimpleNamespace()
         args = self.args
         args.MODEL_NAME = model
+        args.strategy_string = strategy
 
         # Rescale for fp16 mode: set x = x/2 every X layer (to avoid overflow)
         self.RESCALE_LAYER = 6 if 'fp16' in strategy else 0
@@ -60,6 +63,7 @@ class RWKV(MyModule):
         print(f'Loading {args.MODEL_NAME} ...')
         with torch.no_grad():
             self.w = torch.load(args.MODEL_NAME, map_location='cpu')
+            gc.collect()
             w = self.w
             args.n_embd = w['emb.weight'].shape[1]
             try: # precompute embedding
@@ -84,14 +88,12 @@ class RWKV(MyModule):
             allocated = 0
             free_slots = 0
             for i in range(len(s)):
-                if s[i][1] == 'fp32':
-                    s[i][1] = torch.float
-                elif s[i][1] == 'fp16':
-                    s[i][1] = torch.float16
-                elif s[i][1] == 'bf16':
-                    s[i][1] = torch.bfloat16
-                if len(s[i]) > 2:
-                    ss = s[i][2]
+                si = s[i]
+                if si[1] == 'fp32': si[1] = torch.float
+                elif si[1] == 'fp16': si[1] = torch.float16
+                elif si[1] == 'bf16': si[1] = torch.bfloat16
+                if len(si) > 2:
+                    ss = si[2]
                     assert ss.startswith('*')
                     if ss.endswith('+'):
                         plan[i] = int(ss[1:-1])
@@ -134,7 +136,7 @@ class RWKV(MyModule):
                         strategy[n].device = s[i][0]
                         strategy[n].dtype = s[i][1]
                         strategy[n].stream = False
-                        if i == stream_i and n - (0 if i == 0 else plan[i-1]) >= (plan[i] - stream_count):
+                        if i == stream_i and n >= (plan[i] - stream_count):
                             strategy[n].stream = True
                         break
                 print(f"{n}\t{strategy[n].device}\t{str(strategy[n].dtype).replace('torch.','')}{'-stream' if strategy[n].stream else ''}")
@@ -153,7 +155,7 @@ class RWKV(MyModule):
                 
                 if '.time_' in x:
                     w[x] = w[x].squeeze()
-                if 'key.weight' in x or 'value.weight' in x or 'receptance.weight' in x or 'output.weight' in x:
+                if 'key.weight' in x or 'value.weight' in x or 'receptance.weight' in x or 'output.weight' in x or 'head.weight' in x:
                     w[x] = w[x].t()
                 
                 if '.time_decay' in x: # need fp32 for this
@@ -179,6 +181,11 @@ class RWKV(MyModule):
                 elif DEVICE != 'cpu':
                     w[x] = w[x].to(device=DEVICE)
 
+                if 'ffn.value.weight' in x:
+                    gc.collect()
+                    if 'cuda' in args.strategy_string:
+                        torch.cuda.empty_cache()
+
                 shape = [i for i in w[x].shape if i != 1]
                 if len(shape) > 1:
                     shape = f" {str(shape[0]).rjust(5)} {str(shape[1]).rjust(5)}"
@@ -196,6 +203,8 @@ class RWKV(MyModule):
                     print('.', end = '', flush = True)
             assert len(keys) == 4 + (4+9+5) * args.n_layer, 'Error: not a RWKV-4 model (4a and 4b models are not supported as of now)'
             gc.collect()
+            if 'cuda' in args.strategy_string:
+                torch.cuda.empty_cache()
         
     @MyFunction
     def ffn_one(self, x, sx, ln_w, ln_b, k_mix, r_mix, kw, vw, rw):
@@ -294,7 +303,7 @@ class RWKV(MyModule):
         out = (r * y) @ ow
         return x + out, xx[-1,:], aa, bb, pp
 
-    def forward(self, tokens, state):
+    def forward(self, tokens, state, full_output=False):
         with torch.no_grad():
             w = self.w
             args = self.args
@@ -369,7 +378,7 @@ class RWKV(MyModule):
                         kw=kw, vw=vw, rw=rw)
                     del kw
                     del vw
-                    del rw                        
+                    del rw
                 else:
                     x, state[i*5+4] = FFN(
                         x, sx=state[i*5+4],
@@ -383,8 +392,9 @@ class RWKV(MyModule):
                     if (i+1) % self.RESCALE_LAYER == 0:
                         x = x / 2
             
+            x = x[-1,:] if (seq_mode and (not full_output)) else x
             x = x.to(dtype=self.strategy[args.n_layer].dtype, device=self.strategy[args.n_layer].device)
-            x = F.layer_norm(x[-1,:] if seq_mode else x, (args.n_embd,), weight=w['ln_out.weight'], bias=w['ln_out.bias'])
-            x = w['head.weight'] @ x
+            x = F.layer_norm(x, (args.n_embd,), weight=w['ln_out.weight'], bias=w['ln_out.bias'])
+            x = x @ w['head.weight']
 
             return x.float(), state
