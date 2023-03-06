@@ -40,7 +40,7 @@ Also, {bot} likes to tell {user} a lot about herself or her opinions. \
 
 {user}{interface} Cool! I'll surely try this next time.
 
-{bot}{interface} It's pleasent to have a drink with you. Let's talk a while then.
+{bot}{interface} It's pleasent to meet with you here. Let's talk for a while!
 
 '''
 
