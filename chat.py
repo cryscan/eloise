@@ -45,7 +45,7 @@ args.strategy = 'cuda fp16 *32 -> cpu fp32'
 
 # args.MODEL_NAME = '/root/autodl-tmp/Models/RWKV-4-Pile-7B-20221115-8047'
 # args.MODEL_NAME = '/root/autodl-tmp/Models/RWKV-4-Pile-14B-20230213-8019'
-args.MODEL_NAME = '/root/autodl-tmp/Models/RWKV-4-Pile-14B-20230227-ctx4096-test503'
+args.MODEL_NAME = '/root/autodl-tmp/Models/RWKV-4-Pile-14B-20230228-ctx4096-test663'
 
 args.vocab_size = 50277
 args.head_qk = 0
