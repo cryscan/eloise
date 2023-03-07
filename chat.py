@@ -34,6 +34,8 @@ DONT_OUTPUT = -999999999
 MAX_REPLY_LEN = 1024
 AVOID_REPEAT = '，。：？！'
 
+MAX_MESSAGE_LEN = 4096
+
 args = types.SimpleNamespace()
 
 # args.strategy = 'cpu fp32'
@@ -168,8 +170,8 @@ def on_generate(user: User, message: str, mode: str = "") -> str:
     global model_tokens, model_state, last_message
 
     message = message.replace("\r\n", '\n').replace('\\n', '\n').strip()
-    if len(message) > 1024:
-        return "Your message is too long! (max 1024 tokens)"
+    if len(message) > MAX_MESSAGE_LEN:
+        return f"Your message is too long! (max {MAX_MESSAGE_LEN} tokens)"
     print(message)
 
     message, x_temp, x_top_p = read_sampler_params(message)
@@ -236,8 +238,8 @@ def on_message(user: User, message: str, alt: bool = False) -> str:
     global model_tokens, model_state
 
     message = message.replace('\r\n', '\n').replace('\\n', '\n').strip()
-    if len(message) > 1024:
-        return "Your message is too long! (max 1024 tokens)"
+    if len(message) > MAX_MESSAGE_LEN:
+        return f"Your message is too long! (max {MAX_MESSAGE_LEN} tokens)"
     print(message)
 
     message, x_temp, x_top_p = read_sampler_params(message)
