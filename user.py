@@ -40,7 +40,7 @@ Also, {bot} likes to tell {user} a lot about herself or her opinions. \
 
 {user}{interface} Sounds tasty. I'll try it next time.
 
-{bot}{interface} It's really worth a try. Okay, Let's talk for a while.
+{bot}{interface} It's really worth a try. Okay, Let's chat for a while. What would you like to say? I'm listening.
 
 '''
 
