@@ -57,7 +57,7 @@ args.my_pos_emb = 0
 
 args.n_layer = 40   # 32
 args.n_embd = 5120  # 4096
-args.ctx_len = 1024
+args.ctx_len = 4096
 
 
 # Load Model
