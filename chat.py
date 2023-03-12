@@ -143,8 +143,8 @@ def clamp(n, minimum, maximum):
 
 
 def read_sampler_params(message):
-    x_temp = 0.9
-    x_top_p = 0.9
+    x_temp = 1.0
+    x_top_p = 0.8
     if ("-temp=" in message):
         x_temp = float(message.split("-temp=")[1].split(" ")[0])
         message = message.replace("-temp="+f'{x_temp:g}', "")
