@@ -43,7 +43,7 @@ args = types.SimpleNamespace()
 # args.strategy = 'cuda fp16 *8 -> cpu fp32'
 # args.strategy = 'cuda fp16 *6+'
 # args.strategy = 'cuda fp16 *0+ -> cpu fp32 *1'
-args.strategy = 'cuda fp16 *33 -> cpu fp32'
+args.strategy = 'cuda fp16 *34 -> cpu fp32'
 
 # args.MODEL_NAME = '/root/autodl-tmp/Models/RWKV-4-Pile-7B-20221115-8047'
 # args.MODEL_NAME = '/root/autodl-tmp/Models/RWKV-4-Pile-14B-20230213-8019'
@@ -79,10 +79,15 @@ for i in AVOID_REPEAT:
 
 def run_rnn(tokens, nl_bias=0):
     global model_tokens, model_state
+    SEGMENT_LEN = 128
 
     tokens = [int(x) for x in tokens]
-    model_tokens += tokens
-    out, model_state = model.forward(tokens, model_state)
+    for i in range(max(len(tokens) - 1, 0) // SEGMENT_LEN + 1):
+        begin = SEGMENT_LEN * i
+        end = min(begin + SEGMENT_LEN, len(tokens))
+
+        model_tokens += tokens[begin:end]
+        out, model_state = model.forward(tokens[begin:end], model_state)
 
     out[0] = DONT_OUTPUT
     out[187] += nl_bias
