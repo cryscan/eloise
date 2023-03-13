@@ -5,6 +5,7 @@ import types
 import gc
 import numpy as np
 import torch
+import pickle
 from user import User, default_male_user, default_female_user
 
 from model.model_run import RWKV
@@ -48,6 +49,8 @@ args.strategy = 'cuda fp16 *34 -> cpu fp32'
 # args.MODEL_NAME = '/root/autodl-tmp/Models/RWKV-4-Pile-7B-20221115-8047'
 # args.MODEL_NAME = '/root/autodl-tmp/Models/RWKV-4-Pile-14B-20230213-8019'
 args.MODEL_NAME = '/root/autodl-tmp/Models/RWKV-4-Pile-14B-20230228-ctx4096-test663'
+
+args.STATE_DUMP_NAME = './state'
 
 args.vocab_size = 50277
 args.head_qk = 0
@@ -129,18 +132,33 @@ def clear_current_state():
 
 
 def init_run():
-    print("Loading intro male...")
-    clear_current_state()
-    out = run_rnn(tokenizer.encode(default_male_user.intro()))
-    clear_current_state()
-    save_all_state("", "intro_male", out)
-    save_all_state("", "intro_unknown", out)
+    try:
+        recover_all_state()
+        print("Recovered intro state")
+    except:
+        print("Loading intro male...")
+        clear_current_state()
+        out = run_rnn(tokenizer.encode(default_male_user.intro()))
+        clear_current_state()
+        save_all_state("", "intro_male", out)
+        save_all_state("", "intro_unknown", out)
 
-    print("Loading intro female...")
-    clear_current_state()
-    out = run_rnn(tokenizer.encode(default_female_user.intro()))
-    clear_current_state()
-    save_all_state("", "intro_female", out)
+        print("Loading intro female...")
+        clear_current_state()
+        out = run_rnn(tokenizer.encode(default_female_user.intro()))
+        clear_current_state()
+        save_all_state("", "intro_female", out)
+
+
+def recover_all_state():
+    global all_state
+    with open(args.STATE_DUMP_NAME + '.pickle', 'rb') as file:
+        all_state = pickle.load(file)
+
+
+def dump_all_state():
+    with open(args.STATE_DUMP_NAME + '.pickle', 'wb') as file:
+        pickle.dump(all_state, file, protocol=pickle.HIGHEST_PROTOCOL)
 
 
 def clamp(n, minimum, maximum):
@@ -312,3 +330,4 @@ def on_message(user: User, message: str, alt: bool = False) -> str:
 
 if __name__ == "__main__":
     init_run()
+    dump_all_state()
