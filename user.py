@@ -160,7 +160,7 @@ The following is a coherent verbose detailed conversation between a girl named {
 
 {user}{interface} Sounds tasty. I'll try it next time. Would you like to chat for a while?
 
-{bot}{interface} Of course!
+{bot}{interface} Of course! I'm listening, and I'll try my best to answer your questions, give helpful advices or so.
 
 '''
 

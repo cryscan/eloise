@@ -81,7 +81,7 @@ for i in AVOID_REPEAT:
     AVOID_REPEAT_TOKENS += dd
 
 
-def run_rnn(tokens, nl_bias=0):
+def run_rnn(tokens, nl_bias=0, end_of_text=False):
     global model_tokens, model_state
     SEGMENT_LEN = 128
 
@@ -93,7 +93,8 @@ def run_rnn(tokens, nl_bias=0):
         model_tokens += tokens[begin:end]
         out, model_state = model.forward(tokens[begin:end], model_state)
 
-    out[0] = DONT_OUTPUT
+    if not end_of_text:
+        out[0] = DONT_OUTPUT
     out[187] += nl_bias
 
     if model_tokens[-1] in AVOID_REPEAT_TOKENS:
@@ -149,6 +150,8 @@ def init_run():
         out = run_rnn(tokenizer.encode(default_female_user.intro()))
         clear_current_state()
         save_all_state("", "intro_female", out)
+
+        dump_all_state()
 
 
 def recover_all_state():
@@ -307,7 +310,7 @@ def on_message(user: User, message: str, alt: bool = False) -> str:
             temperature=x_temp,
             top_p=x_top_p
         )
-        out = run_rnn([token], nl_bias=nl_bias)
+        out = run_rnn([token], nl_bias=nl_bias, end_of_text=True)
         counter[int(token)] += 1
 
         xxx = tokenizer.decode(model_tokens[out_last:])
@@ -317,6 +320,14 @@ def on_message(user: User, message: str, alt: bool = False) -> str:
 
         reply = tokenizer.decode(model_tokens[begin:])
         reply = reply.replace("\r\n", '\n').replace('\\n', '\n')
+
+        # End-of-text
+        if model_tokens[-1] == 0:
+            end_text: str = tokenizer.decode([0])
+            reply = reply[:-len(end_text)]
+            model_tokens = model_tokens[:-1].append(tokenizer.encode('\n\n'))
+            print(end_text)
+            break
         if '\n\n' in reply:
             reply = reply.strip()
             break
@@ -331,4 +342,3 @@ def on_message(user: User, message: str, alt: bool = False) -> str:
 
 if __name__ == "__main__":
     init_run()
-    dump_all_state()
