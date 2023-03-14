@@ -48,9 +48,10 @@ args.strategy = 'cuda fp16 *33 -> cpu fp32'
 
 # args.MODEL_NAME = '/root/autodl-tmp/Models/RWKV-4-Pile-7B-20221115-8047'
 # args.MODEL_NAME = '/root/autodl-tmp/Models/RWKV-4-Pile-14B-20230213-8019'
-args.MODEL_NAME = '/root/autodl-tmp/Models/RWKV-4-Pile-14B-20230228-ctx4096-test663'
+# args.MODEL_NAME = '/root/autodl-tmp/Models/RWKV-4-Pile-14B-20230228-ctx4096-test663'
+args.MODEL_NAME = '/root/autodl-tmp/Models/RWKV-4-Pile-14B-20230313-ctx8192-test1050'
 
-args.STATE_DUMP_NAME = './state'
+args.STATE_DUMP_NAME = './state_8k'
 
 args.vocab_size = 50277
 args.head_qk = 0
@@ -167,7 +168,7 @@ def clamp(n, minimum, maximum):
 
 def read_sampler_params(message):
     x_temp = 1.0
-    x_top_p = 0.85
+    x_top_p = 0.8
     if ("-temp=" in message):
         x_temp = float(message.split("-temp=")[1].split(" ")[0])
         message = message.replace("-temp="+f'{x_temp:g}', "")
