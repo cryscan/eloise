@@ -47,7 +47,7 @@ class TOKENIZER():
         presense = torch.gt(counter, torch.zeros_like(counter)).float()
         return logits - counter * alpha_frequency - presense * alpha_presence
 
-    def sample_logits(self, logits, x, ctx_len, temperature=1.0, top_p=1.0, top_k=0):
+    def sample_logits(self, logits, temperature=1.0, top_p=1.0, top_k=0):
         probs = F.softmax(logits.float(), dim=-1)
         top_k = int(top_k)
         if probs.device == torch.device('cpu'):

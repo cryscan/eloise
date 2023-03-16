@@ -194,7 +194,7 @@ def on_reset(user: User, cn: bool = False) -> str:
 
 
 def on_generate(user: User, message: str, mode: str = "") -> str:
-    global model_tokens, model_state, last_message
+    global model_tokens, model_state
 
     message = message.replace("\r\n", '\n').replace('\\n', '\n').strip()
     if len(message) > MAX_MESSAGE_LEN:
@@ -230,13 +230,7 @@ def on_generate(user: User, message: str, mode: str = "") -> str:
     out_last = begin
     for i in range(150):
         out = tokenizer.alpha_logits(out, counter)
-        token = tokenizer.sample_logits(
-            out,
-            model_tokens,
-            args.ctx_len,
-            temperature=x_temp,
-            top_p=x_top_p
-        )
+        token = tokenizer.sample_logits(out, temperature=x_temp, top_p=x_top_p)
         out = run_rnn([token])
         counter[int(token)] += 1
 
@@ -245,20 +239,16 @@ def on_generate(user: User, message: str, mode: str = "") -> str:
             print(xxx, end='', flush=True)
             out_last = begin + i + 1
 
-        if mode == "qa":
-            reply = tokenizer.decode(model_tokens[begin:])
-            reply = reply.replace("\r\n", '\n').replace('\\n', '\n')
-            if '\n\n' in reply:
-                reply = reply.strip()
-                break
+        reply += xxx
+        reply = reply.replace("\r\n", '\n').replace('\\n', '\n')
+
+        if mode == "qa" and '\n\n' in reply:
+            break
 
     save_all_state(user.id, "gen_1", out)
 
-    reply = tokenizer.decode(model_tokens[begin:]).strip()
-    reply = reply.replace("\r\n", '\n')
-    reply = reply.replace('\\n', '\n')
-    reply = reply.replace("\n\n", '\n')
-    return reply.strip()
+    reply = reply.strip()
+    return reply
 
 
 def on_message(user: User, message: str, alt: bool = False) -> str:
@@ -303,33 +293,26 @@ def on_message(user: User, message: str, alt: bool = False) -> str:
             nl_bias = (i - 130) * 0.25
 
         out = tokenizer.alpha_logits(out, counter)
-        token = tokenizer.sample_logits(
-            out,
-            model_tokens,
-            args.ctx_len,
-            temperature=x_temp,
-            top_p=x_top_p
-        )
+        token = tokenizer.sample_logits(out, temperature=x_temp, top_p=x_top_p)
         out = run_rnn([token], nl_bias=nl_bias, end_of_text=True)
         counter[int(token)] += 1
+
+        if token == 0:
+            break
 
         xxx = tokenizer.decode(model_tokens[out_last:])
         if '\ufffd' not in xxx:
             print(xxx, end='', flush=True)
             out_last = begin + i + 1
 
-        reply = tokenizer.decode(model_tokens[begin:])
+        reply += xxx
         reply = reply.replace("\r\n", '\n').replace('\\n', '\n')
 
-        # End-of-text
-        if model_tokens[-1] == 0:
-            end_text: str = tokenizer.decode([0])
-            reply = reply[:-len(end_text)]
-            model_tokens = model_tokens[:-1].append(tokenizer.encode('\n\n'))
-            print(end_text)
-            break
         if '\n\n' in reply:
-            reply = reply.strip()
+            break
+        elif reply[-1] == '\n':
+            # Error in format
+            out = run_rnn([187], nl_bias=nl_bias, end_of_text=True)
             break
 
     save_all_state(user.id, "chat", out)
@@ -337,6 +320,7 @@ def on_message(user: User, message: str, alt: bool = False) -> str:
     reply = reply.replace(user.name(), user.nickname)
     reply = reply.replace(user.name().lower(), user.nickname)
     reply = reply.replace(user.name().upper(), user.nickname)
+    reply = reply.strip()
     return reply
 
 
