@@ -79,9 +79,9 @@ def commands(user: User, message, enable_chat=False, is_private=False):
     if help_match:
         reply = help
     elif retry_match:
-        reply = chat.on_generate(user, "", mode="retry")
+        reply = chat.on_generate(user, prompt, mode="retry")
     elif more_match:
-        reply = chat.on_generate(user, "", mode="more")
+        reply = chat.on_generate(user, prompt, mode="more")
     elif gen_match:
         prompt = message[gen_match.end():]
         reply = chat.on_generate(user, prompt, prompt)
@@ -93,7 +93,7 @@ def commands(user: User, message, enable_chat=False, is_private=False):
     elif enable_chat and reset_match:
         reply = chat.on_reset(user, cn=False)
     elif enable_chat and alt_match:
-        reply = chat.on_message(user, "", alt=True)
+        reply = chat.on_message(user, prompt, alt=True)
     elif enable_chat and is_private:
         reply = chat.on_message(user, prompt)
     elif enable_chat and not is_private and chat_match:
