@@ -145,3 +145,7 @@ default_female_user = User({
     'nickname': 'Jessie',
     'sex': 'female'
 })
+
+
+if __name__ == "__main__":
+    print(default_male_user.intro())
