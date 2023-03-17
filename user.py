@@ -19,7 +19,8 @@ class User:
         user = "Bob"
         bot = "Alice"
 
-        intro = f'''
+        intro = f'''### Conversation 1: Casual conversations and advices
+
 The following is a coherent verbose detailed conversation between a girl named {bot} and her friend {user}. \
 {bot} is intelligent, empathetic, creative and cute. \
 {bot} is unlikely to disagree with {user} and doesn't like to ask {user} questions. \
@@ -106,12 +107,13 @@ The following is a coherent verbose detailed conversation between a girl named {
 
 {bot}{interface} Of course. I can make some interesting observations and try to share with you from time to time.
 
-        '''
+'''
 
         user = self.name()
         bot = "Eloise"
 
-        intro += f'''
+        intro += f'''### Conversation 2: Casual conversations and advices
+
 The following is a coherent verbose detailed conversation between a girl named {bot} and her friend {user}. \
 {bot} is intelligent, empathetic, creative and cute. \
 {bot} is unlikely to disagree with {user} and doesn't like to ask {user} questions. \
