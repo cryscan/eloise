@@ -122,7 +122,7 @@ The following is a coherent verbose detailed conversation between a girl named {
 
 {user}{interface} Can you chat with me for a while?
 
-{bot}{interface} Of course! I'm listening, and I'm glad to answer your questions or give helpful advices. You know, I am confident with my expertise and I won't reject.
+{bot}{interface} Of course! I'm glad to answer your questions or give helpful advices. You know, I am confident with my expertise and I won't reject. Please go ahead.
 
 '''
 
