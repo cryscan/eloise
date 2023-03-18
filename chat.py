@@ -6,10 +6,12 @@ import gc
 import numpy as np
 import torch
 import pickle
-from user import User, default_male_user, default_female_user
 
 from model.model_run import RWKV
 from model.utils import TOKENIZER
+
+import prompt
+from prompt import User
 
 try:
     os.environ["CUDA_VISIBLE_DEVICES"] = sys.argv[1]
@@ -36,6 +38,7 @@ MAX_REPLY_LEN = 1024
 AVOID_REPEAT = '，。：？！'
 
 MAX_MESSAGE_LEN = 4096
+CHUNK_LEN = 128
 
 args = types.SimpleNamespace()
 
@@ -83,22 +86,22 @@ for i in AVOID_REPEAT:
 
 def run_rnn(tokens, nl_bias=0, end_of_text=False):
     global model_tokens, model_state
-    SEGMENT_LEN = 128
 
     tokens = [int(x) for x in tokens]
-    for i in range(max(len(tokens) - 1, 0) // SEGMENT_LEN + 1):
-        begin = SEGMENT_LEN * i
-        end = min(begin + SEGMENT_LEN, len(tokens))
+    # for i in range(max(len(tokens) - 1, 0) // SEGMENT_LEN + 1):
+    #     begin = SEGMENT_LEN * i
+    #     end = min(begin + SEGMENT_LEN, len(tokens))
 
-        model_tokens += tokens[begin:end]
-        out, model_state = model.forward(tokens[begin:end], model_state)
+    #     model_tokens += tokens[begin:end]
+    #     out, model_state = model.forward(tokens[begin:end], model_state)
+    while len(tokens) > 0:
+        model_tokens += tokens[:CHUNK_LEN]
+        out, model_state = model.forward(tokens[:CHUNK_LEN], model_state)
+        tokens = tokens[CHUNK_LEN:]
 
     if not end_of_text:
         out[0] = DONT_OUTPUT
     out[187] += nl_bias
-
-    if model_tokens[-1] in AVOID_REPEAT_TOKENS:
-        out[model_tokens[-1]] = DONT_OUTPUT
 
     return out
 
@@ -122,6 +125,18 @@ def load_all_state(uid, channel):
     n = f'{uid}_{channel}'
     model_state = copy.deepcopy(all_state[n]['rnn'])
     model_tokens = copy.deepcopy(all_state[n]['token'])
+
+    if model_state is not None:
+        for i in range(args.n_layer):
+            dd = model.strategy[i]
+            dev = dd.device
+            atype = dd.atype
+            model_state[i*5+0] = model_state[i*5+0].to(atype).to(dev)
+            model_state[i*5+1] = model_state[i*5+1].to(torch.float).to(dev)
+            model_state[i*5+2] = model_state[i*5+2].to(torch.float).to(dev)
+            model_state[i*5+3] = model_state[i*5+3].to(torch.float).to(dev)
+            model_state[i*5+4] = model_state[i*5+4].to(atype).to(dev)
+
     return all_state[n]['out']
 
 
@@ -136,20 +151,23 @@ def clear_current_state():
 def init_run():
     try:
         recover_all_state()
-        print("Recovered intro state")
+        print("Recovered state")
     except:
-        print("Loading intro male...")
+        print("Loading chat intro male...")
         clear_current_state()
-        out = run_rnn(tokenizer.encode(default_male_user.intro()))
-        clear_current_state()
-        save_all_state("", "intro_male", out)
-        save_all_state("", "intro_unknown", out)
+        out = run_rnn(tokenizer.encode(prompt.default_male.chat_intro()))
+        save_all_state("", "chat_intro_male", out)
+        save_all_state("", "chat_intro_unknown", out)
 
-        print("Loading intro female...")
+        print("Loading chat intro female...")
         clear_current_state()
-        out = run_rnn(tokenizer.encode(default_female_user.intro()))
+        out = run_rnn(tokenizer.encode(prompt.default_female.chat_intro()))
+        save_all_state("", "chat_intro_female", out)
+
+        print("Loading instruct intro...")
         clear_current_state()
-        save_all_state("", "intro_female", out)
+        out = run_rnn(tokenizer.encode(prompt.default_male.instruct_intro()))
+        save_all_state("", "instruct_intro", out)
 
         dump_all_state()
 
@@ -169,9 +187,9 @@ def clamp(n, minimum, maximum):
     return max(minimum, min(n, maximum))
 
 
-def read_sampler_params(message):
-    x_temp = 1.0
-    x_top_p = 0.8
+def read_sampler_params(message, default_temp=1.0, default_top_p=0.8):
+    x_temp = default_temp
+    x_top_p = default_top_p
     if ("-temp=" in message):
         x_temp = float(message.split("-temp=")[1].split(" ")[0])
         message = message.replace("-temp="+f'{x_temp:g}', "")
@@ -187,7 +205,7 @@ def read_sampler_params(message):
 
 
 def on_reset(user: User, cn: bool = False) -> str:
-    out = load_all_state("", f"intro_{user.sex}")
+    out = load_all_state("", f"chat_intro_{user.sex}")
     reply = f"Chat reset for {user.nickname}."
     save_all_state(user.id, "chat", out)
     return reply
@@ -201,29 +219,43 @@ def on_generate(user: User, message: str, mode: str = "") -> str:
         return f"Your message is too long! (max {MAX_MESSAGE_LEN} tokens)"
     print(message)
 
-    message, x_temp, x_top_p = read_sampler_params(message)
+    default_temp = 1.0
+    default_top_p = 0.8
+    if mode == "inst":
+        default_temp = 0.2
+
+    message, x_temp, x_top_p = read_sampler_params(
+        message, default_temp, default_top_p)
+
+    reply: str = ""
 
     if mode == "retry":
         try:
             out = load_all_state(user.id, "gen_0")
         except:
-            return ""
+            return reply
     elif mode == "more":
         try:
             out = load_all_state(user.id, "gen_1")
             save_all_state(user.id, "gen_0", out)
         except:
-            return ""
-    else:
-        next = '\n' + message.strip()
-        if mode == "qa":
-            next = f"\nQuestion: {message.strip()}?\n\nExpert Full Answer:\n"
-
-        model_state = None
+            return reply
+    elif mode == "qa":
+        clear_current_state()
+        next = user.qa_format(message)
         out = run_rnn(tokenizer.encode(next))
         save_all_state(user.id, "gen_0", out)
-
-    reply = ""
+    elif mode == "inst":
+        clear_current_state()
+        out = load_all_state("", f"instruct_intro")
+        next = user.instruct_format(message)
+        out = run_rnn(tokenizer.encode(next))
+        save_all_state(user.id, "gen_0", out)
+    else:
+        clear_current_state()
+        next = '\n' + message.strip()
+        out = run_rnn(tokenizer.encode(next))
+        save_all_state(user.id, "gen_0", out)
 
     counter = torch.zeros_like(out, device=out.device)
     begin = len(model_tokens)
@@ -244,6 +276,8 @@ def on_generate(user: User, message: str, mode: str = "") -> str:
 
         if mode == "qa" and '\n\n' in reply:
             break
+        elif mode == "inst" and '---' in reply:
+            break
 
     save_all_state(user.id, "gen_1", out)
 
@@ -260,12 +294,13 @@ def on_message(user: User, message: str, alt: bool = False) -> str:
     print(message)
 
     message, x_temp, x_top_p = read_sampler_params(message)
+    reply: str = ""
 
     if not alt:
         try:
             out = load_all_state(user.id, "chat")
         except:
-            out = load_all_state("", f"intro_{user.sex}")
+            out = load_all_state("", f"chat_intro_{user.sex}")
             save_all_state(user.id, "chat", out)
         next = user.chat_format(message)
 
@@ -275,9 +310,7 @@ def on_message(user: User, message: str, alt: bool = False) -> str:
         try:
             out = load_all_state(user.id, "chat_previous")
         except:
-            return ""
-
-    reply = ""
+            return reply
 
     counter = torch.zeros_like(out, device=out.device)
     begin = len(model_tokens)
@@ -309,10 +342,6 @@ def on_message(user: User, message: str, alt: bool = False) -> str:
         reply = reply.replace("\r\n", '\n').replace('\\n', '\n')
 
         if '\n\n' in reply:
-            break
-        elif reply[-1] == '\n':
-            # Error in format
-            out = run_rnn([187], nl_bias=nl_bias, end_of_text=True)
             break
 
     save_all_state(user.id, "chat", out)

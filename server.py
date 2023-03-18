@@ -5,7 +5,7 @@ import re
 import datetime
 import logging
 
-from user import User
+from prompt import User
 
 app = Flask(__name__)
 
@@ -37,8 +37,8 @@ Example starting:
 -m, -more: Continue generating more
 '''
 
-MORE_HELP_MESSAGE = '''
--qa <text>: Ask questions
+MORE_HELP_MESSAGE = '''-qa <text>: Ask questions
+-i, -inst <text>: Follow instructions
 
 ---- CHAT WITH CONTEXT ----
 -s, -reset: Reset your chat chain
@@ -58,6 +58,7 @@ def commands(user: User, message, enable_chat=False, is_private=False):
     more_match = re.match("\-m(ore)?", message)
     gen_match = re.match("\-g(en)?\s+", message)
     qa_match = re.match("\-qa\s+", message)
+    inst_match = re.match("\-i(nst)?\s+", message)
 
     reset_match = re.match("\-(reset|s)", message)
     reset_chinese_match = re.match("\-sc", message)
@@ -88,6 +89,9 @@ def commands(user: User, message, enable_chat=False, is_private=False):
     elif enable_chat and qa_match:
         prompt = message[qa_match.end():]
         reply = chat.on_generate(user, prompt, mode="qa")
+    elif enable_chat and inst_match:
+        prompt = message[inst_match.end():]
+        reply = chat.on_generate(user, prompt, mode="inst")
     elif enable_chat and reset_chinese_match:
         reply = chat.on_reset(user, cn=True)
     elif enable_chat and reset_match:
