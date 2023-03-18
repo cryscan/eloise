@@ -38,7 +38,7 @@ MAX_REPLY_LEN = 1024
 AVOID_REPEAT = '，。：？！'
 
 MAX_MESSAGE_LEN = 4096
-CHUNK_LEN = 128
+CHUNK_LEN = 256
 
 args = types.SimpleNamespace()
 
@@ -182,21 +182,29 @@ def clamp(n, minimum, maximum):
     return max(minimum, min(n, maximum))
 
 
-def read_sampler_params(message, default_temp=1.0, default_top_p=0.8):
+def read_sampler_params(message, default_temp=1.0, default_top_p=0.8, default_af=0.5, default_ap=0.2):
     x_temp = default_temp
     x_top_p = default_top_p
+    x_af = default_af
+    x_ap = default_ap
     if ("-temp=" in message):
         x_temp = float(message.split("-temp=")[1].split(" ")[0])
         message = message.replace("-temp="+f'{x_temp:g}', "")
-        # print(f"temp: {x_temp}")
     if ("-top_p=" in message):
         x_top_p = float(message.split("-top_p=")[1].split(" ")[0])
         message = message.replace("-top_p="+f'{x_top_p:g}', "")
-        # print(f"top_p: {x_top_p}")
+    if ("-af=" in message):
+        x_af = float(message.split("-af=")[1].split(" ")[0])
+        message = message.replace("-af="+f'{x_af:g}', "")
+    if ("-ap=" in message):
+        x_ap = float(message.split("-ap=")[1].split(" ")[0])
+        message = message.replace("-ap="+f'{x_ap:g}', "")
 
     x_temp = clamp(x_temp, 0.2, 5)
     x_top_p = max(0, x_top_p)
-    return message, x_temp, x_top_p
+    x_af = clamp(x_af, 0.0, 1.0)
+    x_ap = clamp(x_ap, 0.0, 1.0)
+    return message, x_temp, x_top_p, x_af, x_ap
 
 
 def on_reset(user: User, cn: bool = False) -> str:
@@ -214,13 +222,18 @@ def on_generate(user: User, message: str, mode: str = "") -> str:
         return f"Your message is too long! (max {MAX_MESSAGE_LEN} tokens)"
     print(message)
 
-    default_temp = 1.0
-    default_top_p = 0.8
+    x_temp = 1.0
+    x_top_p = 0.8
+    x_af = 0.5
+    x_ap = 0.2
     if mode == "inst":
-        default_temp = 0.2
+        x_temp = 0.2
+        x_top_p = 0.5
+        x_af = 0.1
+        x_ap = 0.1
 
-    message, x_temp, x_top_p = read_sampler_params(
-        message, default_temp, default_top_p)
+    message, x_temp, x_top_p, x_af, x_ap = read_sampler_params(
+        message, x_temp, x_top_p, x_af, x_ap)
 
     reply: str = ""
 
@@ -256,7 +269,8 @@ def on_generate(user: User, message: str, mode: str = "") -> str:
     begin = len(model_tokens)
     out_last = begin
     for i in range(150):
-        out = tokenizer.alpha_logits(out, counter)
+        out = tokenizer.alpha_logits(
+            out, counter, alpha_frequency=x_af, alpha_presence=x_ap)
         token = tokenizer.sample_logits(out, temperature=x_temp, top_p=x_top_p)
         out = run_rnn([token])
         counter[int(token)] += 1
@@ -271,8 +285,8 @@ def on_generate(user: User, message: str, mode: str = "") -> str:
 
         if mode == "qa" and '\n\n' in reply:
             break
-        elif mode == "inst" and '---' in reply:
-            reply = reply[:-3]
+        elif mode == "inst" and '''###---''' in reply:
+            reply = reply[:-6]
             break
 
     save_all_state(user.id, "gen_1", out)
@@ -289,7 +303,7 @@ def on_message(user: User, message: str, alt: bool = False) -> str:
         return f"Your message is too long! (max {MAX_MESSAGE_LEN} tokens)"
     print(message)
 
-    message, x_temp, x_top_p = read_sampler_params(message)
+    message, x_temp, x_top_p, x_af, x_ap = read_sampler_params(message)
     reply: str = ""
 
     if not alt:
@@ -321,7 +335,8 @@ def on_message(user: User, message: str, alt: bool = False) -> str:
         else:
             nl_bias = (i - 130) * 0.25
 
-        out = tokenizer.alpha_logits(out, counter)
+        out = tokenizer.alpha_logits(
+            out, counter, alpha_frequency=x_af, alpha_presence=x_ap)
         token = tokenizer.sample_logits(out, temperature=x_temp, top_p=x_top_p)
         out = run_rnn([token], nl_bias=nl_bias, end_of_text=True)
         counter[int(token)] += 1

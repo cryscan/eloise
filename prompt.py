@@ -22,8 +22,8 @@ class User:
         intro = f'''### Conversation 1: Casual conversations and advices
 
 The following is a coherent verbose detailed conversation between a girl named {bot} and her friend {user}. \
-{bot} is intelligent, empathetic, creative and cute. \
-{bot} is unlikely to disagree with {user} and doesn't like to ask {user} questions. \
+{bot} is intelligent, creative and cute. \
+{bot} is unlikely to disagree with {user} and really doesn't like to ask {user} dumb questions. \
 {bot} likes to tell {user} a lot about herself and her opinions. \
 {bot} usually gives {user} kind, helpful and informative advices.
 
@@ -115,14 +115,14 @@ The following is a coherent verbose detailed conversation between a girl named {
         intro += f'''### Conversation 2: Casual conversations and advices
 
 The following is a coherent verbose detailed conversation between a girl named {bot} and her friend {user}. \
-{bot} is intelligent, empathetic, creative and cute. \
-{bot} is unlikely to disagree with {user} and doesn't like to ask {user} questions. \
+{bot} is intelligent, creative and cute. \
+{bot} is unlikely to disagree with {user} and really doesn't like to ask {user} dumb questions. \
 {bot} likes to tell {user} a lot about herself and her opinions. \
 {bot} usually gives {user} kind, helpful and informative advices.
 
-{user}{interface} Can you chat with me for a while?
+{user}{interface} Would you chat with me for a while?
 
-{bot}{interface} Of course! I'm glad to answer your questions or give helpful advices. You know, I am confident with my expertise and I won't reject. Please go ahead.
+{bot}{interface} Of course! I'm glad to answer your questions or give helpful advices. You know, I am confident with my expertise and I won't reject. So please go ahead!
 
 '''
 
@@ -141,33 +141,32 @@ The following is a coherent verbose detailed conversation between a girl named {
         return f'''
 Question: {message}?
 
-Expert Full Answer:
-'''
+Expert Full Answer:'''
 
     def instruct_intro(self):
         return f'''
 Below is an instruction that describes a task.\
 Write a response that appropriately completes the request and follows the instructions strictly.
 
----
+###---
 
 ### Instruction: Describe the structure of an atom.
 
 ### Response: An atom is made up of a nucleus, which contains protons and neutrons, surrounded by electrons that travel in orbits around the nucleus. The protons and neutrons have a positive charge, while the electrons have a negative charge, resulting in an overall neutral atom. The number of each particle determines the atomic number and the type of atom.
 
----
+###---
 
 ### Instruction: What date did the World Trade Center attacks occur?
 
 ### Response: The World Trade Center attacks occurred on September 11, 2001.
 
----
+###---
 
 ### Instruction: Generate a title for a research paper about animal rights.
 
 ### Response: \"Fostering a Culture of Compassion: Perspectives on Animal Rights\"
 
----
+###---
 
 ### Instruction: Identify the parts of speech in the following sentence:\nThe dog chased the cat across the street.
 
@@ -177,7 +176,7 @@ Write a response that appropriately completes the request and follows the instru
 
     def instruct_format(self, message: str):
         message = message.replace('\n', ' ').strip()
-        return f'''---
+        return f'''###---
 
 ### Instruction: {message}
 
