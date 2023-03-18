@@ -88,14 +88,9 @@ def run_rnn(tokens, nl_bias=0, end_of_text=False):
     global model_tokens, model_state
 
     tokens = [int(x) for x in tokens]
-    # for i in range(max(len(tokens) - 1, 0) // SEGMENT_LEN + 1):
-    #     begin = SEGMENT_LEN * i
-    #     end = min(begin + SEGMENT_LEN, len(tokens))
+    model_tokens += tokens
 
-    #     model_tokens += tokens[begin:end]
-    #     out, model_state = model.forward(tokens[begin:end], model_state)
     while len(tokens) > 0:
-        model_tokens += tokens[:CHUNK_LEN]
         out, model_state = model.forward(tokens[:CHUNK_LEN], model_state)
         tokens = tokens[CHUNK_LEN:]
 
