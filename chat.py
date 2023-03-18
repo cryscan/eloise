@@ -272,6 +272,7 @@ def on_generate(user: User, message: str, mode: str = "") -> str:
         if mode == "qa" and '\n\n' in reply:
             break
         elif mode == "inst" and '---' in reply:
+            reply = reply[:-3]
             break
 
     save_all_state(user.id, "gen_1", out)
