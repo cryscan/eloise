@@ -3,6 +3,7 @@ import copy
 import sys
 import types
 import gc
+import re
 import numpy as np
 import torch
 import pickle
@@ -84,7 +85,7 @@ for i in AVOID_REPEAT:
     AVOID_REPEAT_TOKENS += dd
 
 
-def run_rnn(tokens, nl_bias=0, end_of_text=False):
+def run_rnn(tokens, nl_bias=0):
     global model_tokens, model_state
 
     tokens = [int(x) for x in tokens]
@@ -94,8 +95,7 @@ def run_rnn(tokens, nl_bias=0, end_of_text=False):
         out, model_state = model.forward(tokens[:CHUNK_LEN], model_state)
         tokens = tokens[CHUNK_LEN:]
 
-    if not end_of_text:
-        out[0] = DONT_OUTPUT
+    out[0] = DONT_OUTPUT
     out[187] += nl_bias
 
     return out
@@ -133,6 +133,21 @@ def load_all_state(uid, channel):
             model_state[i*5+4] = model_state[i*5+4].to(atype).to(dev)
 
     return all_state[n]['out']
+
+
+def save_active_mode(uid, channel, mode):
+    global all_state
+    n = f'{uid}_{channel}_mode'
+    all_state[n] = mode
+
+
+def load_active_mode(uid, channel):
+    n = f'{uid}_{channel}_mode'
+    try:
+        mode = all_state[n]
+    except:
+        mode = ""
+    return mode
 
 
 def clear_current_state():
@@ -182,23 +197,33 @@ def clamp(n, minimum, maximum):
     return max(minimum, min(n, maximum))
 
 
-def read_sampler_params(message, default_temp=1.0, default_top_p=0.8, default_af=0.5, default_ap=0.2):
-    x_temp = default_temp
-    x_top_p = default_top_p
-    x_af = default_af
-    x_ap = default_ap
-    if ("-temp=" in message):
-        x_temp = float(message.split("-temp=")[1].split(" ")[0])
-        message = message.replace("-temp="+f'{x_temp:g}', "")
-    if ("-top_p=" in message):
-        x_top_p = float(message.split("-top_p=")[1].split(" ")[0])
-        message = message.replace("-top_p="+f'{x_top_p:g}', "")
-    if ("-af=" in message):
-        x_af = float(message.split("-af=")[1].split(" ")[0])
-        message = message.replace("-af="+f'{x_af:g}', "")
-    if ("-ap=" in message):
-        x_ap = float(message.split("-ap=")[1].split(" ")[0])
-        message = message.replace("-ap="+f'{x_ap:g}', "")
+def read_sampler_params(message: str, temp=1.0, top_p=0.8, af=0.5, ap=0.2):
+    x_temp = temp
+    x_top_p = top_p
+    x_af = af
+    x_ap = ap
+
+    temp_match = re.match("(\-temp\s*=\s*)([^\s]+)\s+", message)
+    top_p_match = re.match("(\-top_p\s*=\s*)([^\s]+)\s+", message)
+    af_match = re.match("(\-top_p\s*=\s*)([^\s]+)\s+", message)
+    ap_match = re.match("(\-top_p\s*=\s*)([^\s]+)\s+", message)
+
+    if temp_match is not None:
+        x_temp = float(temp_match.group(2))
+        message = message.replace(temp_match.group(0), "")
+        print(f"temp: {x_temp}")
+    if top_p_match is not None:
+        x_top_p = float(top_p_match.group(2))
+        message = message.replace(top_p_match.group(0), "")
+        print(f"top_p: {x_top_p}")
+    if af_match is not None:
+        x_af = float(af_match.group(2))
+        message = message.replace(af_match.group(0), "")
+        print(f"af: {x_af}")
+    if ap_match is not None:
+        x_ap = float(ap_match.group(2))
+        message = message.replace(ap_match.group(0), "")
+        print(f"ap: {x_ap}")
 
     x_temp = clamp(x_temp, 0.2, 5)
     x_top_p = max(0, x_top_p)
@@ -221,6 +246,9 @@ def on_generate(user: User, message: str, mode: str = "") -> str:
     if len(message) > MAX_MESSAGE_LEN:
         return f"Your message is too long! (max {MAX_MESSAGE_LEN} tokens)"
     print(message)
+
+    if mode != "retry" and mode != "more":
+        save_active_mode(user.id, "gen", mode)
 
     x_temp = 1.0
     x_top_p = 0.8
@@ -265,6 +293,8 @@ def on_generate(user: User, message: str, mode: str = "") -> str:
         out = run_rnn(tokenizer.encode(next))
         save_all_state(user.id, "gen_0", out)
 
+    active_mode = load_active_mode(user.id, "gen")
+
     counter = torch.zeros_like(out, device=out.device)
     begin = len(model_tokens)
     out_last = begin
@@ -280,12 +310,12 @@ def on_generate(user: User, message: str, mode: str = "") -> str:
             print(xxx, end='', flush=True)
             out_last = begin + i + 1
 
-        reply += xxx
+        reply = tokenizer.decode(model_tokens[begin:])
         reply = reply.replace("\r\n", '\n').replace('\\n', '\n')
 
-        if mode == "qa" and '\n\n' in reply:
+        if active_mode == "qa" and '\n\n' in reply:
             break
-        elif mode == "inst" and '''###---''' in reply:
+        elif active_mode == "inst" and '''###---''' in reply:
             reply = reply[:-6]
             break
 
@@ -338,18 +368,15 @@ def on_message(user: User, message: str, alt: bool = False) -> str:
         out = tokenizer.alpha_logits(
             out, counter, alpha_frequency=x_af, alpha_presence=x_ap)
         token = tokenizer.sample_logits(out, temperature=x_temp, top_p=x_top_p)
-        out = run_rnn([token], nl_bias=nl_bias, end_of_text=True)
+        out = run_rnn([token], nl_bias=nl_bias)
         counter[int(token)] += 1
-
-        if token == 0:
-            break
 
         xxx = tokenizer.decode(model_tokens[out_last:])
         if '\ufffd' not in xxx:
             print(xxx, end='', flush=True)
             out_last = begin + i + 1
 
-        reply += xxx
+        reply = tokenizer.decode(model_tokens[begin:])
         reply = reply.replace("\r\n", '\n').replace('\\n', '\n')
 
         if '\n\n' in reply:

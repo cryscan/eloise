@@ -141,7 +141,8 @@ The following is a coherent verbose detailed conversation between a girl named {
         return f'''
 Question: {message}?
 
-Expert Full Answer:'''
+Expert Full Answer:
+'''
 
     def instruct_intro(self):
         return f'''
@@ -152,25 +153,29 @@ Write a response that appropriately completes the request and follows the instru
 
 ### Instruction: Describe the structure of an atom.
 
-### Response: An atom is made up of a nucleus, which contains protons and neutrons, surrounded by electrons that travel in orbits around the nucleus. The protons and neutrons have a positive charge, while the electrons have a negative charge, resulting in an overall neutral atom. The number of each particle determines the atomic number and the type of atom.
+### Response:
+An atom is made up of a nucleus, which contains protons and neutrons, surrounded by electrons that travel in orbits around the nucleus. The protons and neutrons have a positive charge, while the electrons have a negative charge, resulting in an overall neutral atom. The number of each particle determines the atomic number and the type of atom.
 
 ###---
 
 ### Instruction: What date did the World Trade Center attacks occur?
 
-### Response: The World Trade Center attacks occurred on September 11, 2001.
+### Response:
+The World Trade Center attacks occurred on September 11, 2001.
 
 ###---
 
 ### Instruction: Generate a title for a research paper about animal rights.
 
-### Response: \"Fostering a Culture of Compassion: Perspectives on Animal Rights\"
+### Response:
+\"Fostering a Culture of Compassion: Perspectives on Animal Rights\"
 
 ###---
 
 ### Instruction: Identify the parts of speech in the following sentence:\nThe dog chased the cat across the street.
 
-### Response: The (Article): dog (Noun): chased (Verb): the (Article): cat (Noun): across (Preposition): the (Article): street (Noun).
+### Response:
+The (Article): dog (Noun): chased (Verb): the (Article): cat (Noun): across (Preposition): the (Article): street (Noun).
 
 '''
 
@@ -180,7 +185,8 @@ Write a response that appropriately completes the request and follows the instru
 
 ### Instruction: {message}
 
-### Response:'''
+### Response:
+'''
 
 
 default_male = User({
