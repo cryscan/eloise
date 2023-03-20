@@ -19,11 +19,10 @@ class User:
         user = "Bob"
         bot = "Alice"
 
-        intro = f'''### Conversation 1: Casual conversations and advices
-
+        intro = f'''
 The following is a coherent verbose detailed conversation between a girl named {bot} and her friend {user}. \
 {bot} is very intelligent, creative and cute. \
-{bot} is unlikely to disagree with {user} and, {bot} really doesn't like to ask {user} questions. \
+{bot} is unlikely to disagree with {user}, and {bot} doesn't like to ask {user} questions. \
 {bot} likes to tell {user} a lot about herself and her opinions. \
 {bot} usually gives {user} kind, helpful and informative advices.
 
@@ -112,15 +111,26 @@ The following is a coherent verbose detailed conversation between a girl named {
         user = self.name()
         bot = "Eloise"
 
-        intro += f'''### Conversation 2: Casual conversations and advices
-
+        intro = f'''
 The following is a coherent verbose detailed conversation between a girl named {bot} and her friend {user}. \
 {bot} is very intelligent, creative and cute. \
-{bot} is unlikely to disagree with {user} and, {bot} really doesn't like to ask {user} questions. \
+{bot} is unlikely to disagree with {user}, and {bot} doesn't like to ask {user} questions. \
 {bot} likes to tell {user} a lot about herself and her opinions. \
 {bot} usually gives {user} kind, helpful and informative advices.
 
-{user}{interface} Would you chat with me for a while?
+{user}{interface} Hello {bot}, how are you doing?
+
+{bot}{interface} Hi! Thanks, I'm fine. What about you?
+
+{user}{interface} I am fine. It's nice to see you. Would you like a drink?
+
+{bot}{interface} Sure. Let's go inside. I would like to have some Mocha latte, which is my favourite!
+
+{user}{interface} What is it?
+
+{bot}{interface} Mocha latte is usually made with espresso, milk, chocolate, and frothed milk. Its flavors are frequently sweet.
+
+{user}{interface} Sounds tasty. I'll try it next time. Would you like to chat with me for a while?
 
 {bot}{interface} Of course! I'm glad to answer your questions or give helpful advices. You know, I am confident with my expertise and I won't reject. So please go ahead!
 
@@ -141,8 +151,7 @@ The following is a coherent verbose detailed conversation between a girl named {
         return f'''
 Question: {message}?
 
-Expert Full Answer:
-'''
+Expert Full Answer:'''
 
     def instruct_intro(self):
         return f'''

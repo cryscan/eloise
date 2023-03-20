@@ -203,10 +203,10 @@ def read_sampler_params(message: str, temp=1.0, top_p=0.8, af=0.5, ap=0.2):
     x_af = af
     x_ap = ap
 
-    temp_match = re.match("(\-temp\s*=\s*)([^\s]+)\s+", message)
-    top_p_match = re.match("(\-top_p\s*=\s*)([^\s]+)\s+", message)
-    af_match = re.match("(\-top_p\s*=\s*)([^\s]+)\s+", message)
-    ap_match = re.match("(\-top_p\s*=\s*)([^\s]+)\s+", message)
+    temp_match = re.search("(\-temp\s*=\s*)([^\s]+)\s+", message)
+    top_p_match = re.search("(\-top_p\s*=\s*)([^\s]+)\s+", message)
+    af_match = re.search("(\-af\s*=\s*)([^\s]+)\s+", message)
+    ap_match = re.search("(\-ap\s*=\s*)([^\s]+)\s+", message)
 
     if temp_match is not None:
         x_temp = float(temp_match.group(2))
