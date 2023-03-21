@@ -93,9 +93,9 @@ def commands(user: User, message, enable_chat=False, is_private=False):
         prompt = message[inst_match.end():]
         reply = chat.on_generate(user, prompt, mode="inst")
     elif enable_chat and reset_chinese_match:
-        reply = chat.on_reset(user, cn=True)
+        reply = chat.on_reset(user)
     elif enable_chat and reset_match:
-        reply = chat.on_reset(user, cn=False)
+        reply = chat.on_reset(user)
     elif enable_chat and alt_match:
         reply = chat.on_message(user, prompt, alt=True)
     elif enable_chat and is_private:
