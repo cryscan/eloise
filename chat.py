@@ -349,6 +349,8 @@ def on_generate(user: User, message: str, mode: str = "") -> str:
             break
 
     save_all_state(user.id, "gen_1", out)
+
+    reply = reply.strip()
     return reply
 
 
