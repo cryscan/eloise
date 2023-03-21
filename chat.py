@@ -238,8 +238,10 @@ def read_sampler_params(message: str, temp=1.0, top_p=0.8, af=0.5, ap=0.2):
 def translate_message(message, from_lang, to_lang):
     translator = translate.Translator(to_lang, from_lang)
     translated = translator.translate(message)
-    translated = message if translated == SAME_LANG else translated
-    print(f"translated: {translated}")
+    # translated = message if translated == SAME_LANG else translated
+    # print(f"translated: {translated}")
+    if from_lang != to_lang:
+        print(f"translated from {from_lang}: {translated}")
     return translated
 
 
