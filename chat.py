@@ -303,6 +303,22 @@ def on_generate(user: User, message: str, mode: str = "") -> str:
             out, counter, alpha_frequency=x_af, alpha_presence=x_ap)
         token = tokenizer.sample_logits(out, temperature=x_temp, top_p=x_top_p)
         out = run_rnn([token])
+
+        if active_mode == "inst":
+            if i <= 0:
+                nl_bias = DONT_OUTPUT
+            elif i <= 30:
+                nl_bias = (i - 30) * 0.1
+            elif i <= 130:
+                nl_bias = 0
+            else:
+                nl_bias = (i - 130) * 0.25
+
+            # Suppress the output of "###"
+            out[4118] += nl_bias
+            out[817] += nl_bias
+            out[4] += nl_bias
+
         counter[int(token)] += 1
 
         xxx = tokenizer.decode(model_tokens[out_last:])
