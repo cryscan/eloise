@@ -226,7 +226,8 @@ Write a response that appropriately completes the request and follows the instru
 
 ### Instruction: {message}
 
-### Response:'''
+### Response:
+'''
 
 
 default_male = User({

@@ -7,6 +7,8 @@ import re
 import numpy as np
 import torch
 import pickle
+import translate
+import langid
 
 from model.model_run import RWKV
 from model.utils import TOKENIZER
@@ -31,6 +33,7 @@ os.environ["RWKV_CUDA_ON"] = '1'
 
 CHAT_LANG = 'English'  # English Chinese
 # CHAT_LANG = 'Chinese'
+SAME_LANG = "PLEASE SELECT TWO DISTINCT LANGUAGES"
 
 tokenizer = TOKENIZER("20B_tokenizer.json")
 
@@ -232,7 +235,15 @@ def read_sampler_params(message: str, temp=1.0, top_p=0.8, af=0.5, ap=0.2):
     return message, x_temp, x_top_p, x_af, x_ap
 
 
-def on_reset(user: User, cn: bool = False) -> str:
+def translate_message(message, from_lang, to_lang):
+    translator = translate.Translator(to_lang, from_lang)
+    translated = translator.translate(message)
+    translated = message if translated == SAME_LANG else translated
+    print(f"translated: {translated}")
+    return translated
+
+
+def on_reset(user: User) -> str:
     out = load_all_state("", f"chat_intro_{user.sex}")
     reply = f"Chat reset for {user.nickname}."
     save_all_state(user.id, "chat", out)
@@ -336,8 +347,6 @@ def on_generate(user: User, message: str, mode: str = "") -> str:
             break
 
     save_all_state(user.id, "gen_1", out)
-
-    reply = reply.strip()
     return reply
 
 
@@ -351,6 +360,9 @@ def on_message(user: User, message: str, alt: bool = False) -> str:
 
     message, x_temp, x_top_p, x_af, x_ap = read_sampler_params(message)
     reply: str = ""
+
+    src_lang = langid.classify(message)[0]
+    message = translate_message(message, src_lang, "en")
 
     if not alt:
         try:
@@ -404,6 +416,7 @@ def on_message(user: User, message: str, alt: bool = False) -> str:
     reply = reply.replace(user.name().lower(), user.nickname)
     reply = reply.replace(user.name().upper(), user.nickname)
     reply = reply.strip()
+    # reply = translate_message(reply, "en", src_lang)
     return reply
 
 
