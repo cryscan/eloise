@@ -30,6 +30,9 @@ Example starting:
 1. What's your interesting news today?
 2. I heard you are a <expert>. Can I ask you some questions?
 
+---- MISC UTILITIES  ----
+-tr <text>: Translate
+
 ---- FREE GENERATION ----
 -h, -help: Show this help
 -g, -gen <text>: Generate text
@@ -54,6 +57,7 @@ received_messages = set()
 def commands(user: User, message, enable_chat=False, is_private=False):
     help_match = re.match("\-h(elp)?", message)
 
+    translate_match = re.match("\-tr", message)
     retry_match = re.match("\-(retry|t)", message)
     more_match = re.match("\-m(ore)?", message)
     gen_match = re.match("\-g(en)?\s+", message)
@@ -79,6 +83,9 @@ def commands(user: User, message, enable_chat=False, is_private=False):
 
     if help_match:
         reply = help
+    elif translate_match:
+        prompt = message[translate_match.end():]
+        reply = chat.on_translate(user, prompt)
     elif retry_match:
         reply = chat.on_generate(user, prompt, mode="retry")
     elif more_match:

@@ -238,9 +238,9 @@ def read_sampler_params(message: str, temp=1.0, top_p=0.8, af=0.5, ap=0.2):
 def translate_message(message, from_lang, to_lang):
     translator = translate.Translator(to_lang, from_lang)
     translated = translator.translate(message)
-    # translated = message if translated == SAME_LANG else translated
-    # print(f"translated: {translated}")
-    if from_lang != to_lang:
+    if from_lang == "autodetect":
+        translated = message if translated == SAME_LANG else translated
+    elif from_lang != to_lang:
         print(f"translated from {from_lang}: {translated}")
     return translated
 
@@ -249,6 +249,20 @@ def on_reset(user: User) -> str:
     out = load_all_state("", f"chat_intro_{user.sex}")
     reply = f"Chat reset for {user.nickname}."
     save_all_state(user.id, "chat", out)
+    return reply
+
+
+def on_translate(user: User, message: str) -> str:
+    lang_match = re.search("\-([a-z]{2}(-[A-Z]{2})?)\s+", message)
+    to_lang = "zh"
+
+    if lang_match is not None:
+        message = message.replace(lang_match.group(0), "")
+        to_lang = lang_match.group(1)
+
+    from_lang = langid.classify(message)[0]
+    reply = translate_message(message, from_lang, to_lang)
+    reply = f"Translated from {from_lang} to {to_lang}:\n{reply}"
     return reply
 
 
