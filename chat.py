@@ -327,9 +327,8 @@ def on_generate(user: User, message: str, mode: str = "") -> str:
     begin = len(model_tokens)
     out_last = begin
     for i in range(150):
-        out = tokenizer.alpha_logits(
-            out, counter, alpha_frequency=x_af, alpha_presence=x_ap)
-        token = tokenizer.sample_logits(out, temperature=x_temp, top_p=x_top_p)
+        out = tokenizer.alpha_logits(out, counter, x_af, x_ap)
+        token = tokenizer.sample_logits(out, x_temp, x_top_p)
         out = run_rnn([token])
         counter[int(token)] += 1
 
@@ -347,6 +346,8 @@ def on_generate(user: User, message: str, mode: str = "") -> str:
             reply = reply[:-3]
             break
 
+    gc.collect()
+    torch.cuda.empty_cache()
     save_all_state(user.id, "gen_1", out)
 
     reply = reply.strip()
@@ -364,8 +365,8 @@ def on_message(user: User, message: str, alt: bool = False) -> str:
     message, x_temp, x_top_p, x_af, x_ap = read_sampler_params(message)
     reply: str = ""
 
-    src_lang = langid.classify(message)[0]
-    message = translate_message(message, src_lang, "en")
+    # src_lang = langid.classify(message)[0]
+    # message = translate_message(message, src_lang, "en")
 
     if not alt:
         try:
@@ -396,9 +397,8 @@ def on_message(user: User, message: str, alt: bool = False) -> str:
         else:
             nl_bias = (i - 130) * 0.25
 
-        out = tokenizer.alpha_logits(
-            out, counter, alpha_frequency=x_af, alpha_presence=x_ap)
-        token = tokenizer.sample_logits(out, temperature=x_temp, top_p=x_top_p)
+        out = tokenizer.alpha_logits(out, counter, x_af, x_ap)
+        token = tokenizer.sample_logits(out, x_temp, x_top_p)
         out = run_rnn([token], nl_bias=nl_bias)
         counter[int(token)] += 1
 
@@ -413,6 +413,8 @@ def on_message(user: User, message: str, alt: bool = False) -> str:
         if '\n\n' in reply:
             break
 
+    gc.collect()
+    torch.cuda.empty_cache()
     save_all_state(user.id, "chat", out)
 
     reply = reply.replace(user.name(), user.nickname)
