@@ -42,7 +42,7 @@ MAX_REPLY_LEN = 1024
 AVOID_REPEAT = '，。：？！'
 
 MAX_MESSAGE_LEN = 4096
-CHUNK_LEN = 256
+CHUNK_LEN = 128
 
 args = types.SimpleNamespace()
 
