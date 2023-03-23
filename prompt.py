@@ -122,7 +122,7 @@ The following is a coherent verbose detailed conversation between a girl named {
 
 {bot}{interface} Hi! Thanks, I'm fine. What about you?
 
-{user}{interface} I am fine. It's nice to see you. Would you like a drink?
+{user}{interface} I am fine. It's nice to see you. Look, here is a store selling tea and juice.
 
 {bot}{interface} Sure. Let's go inside. I would like to have some Mocha latte, which is my favourite!
 
