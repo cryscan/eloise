@@ -51,7 +51,6 @@ args = types.SimpleNamespace()
 # args.strategy = 'cuda fp16 *8 -> cpu fp32'
 # args.strategy = 'cuda fp16 *6+'
 # args.strategy = 'cuda fp16 *0+ -> cpu fp32 *1'
-# args.strategy = 'cuda fp16 *33 -> cpu fp32'
 args.strategy = 'cuda fp16i8 *16 -> cuda fp16'
 
 # args.MODEL_NAME = '/root/autodl-tmp/Models/RWKV-4-Pile-7B-20221115-8047'
@@ -343,10 +342,8 @@ def on_generate(user: User, message: str, mode: str = "") -> str:
             else:
                 nl_bias = (i - 130) * 0.25
 
-            # Suppress the output of "###"
-            out[4118] += nl_bias
-            out[817] += nl_bias
-            out[4] += nl_bias
+            # Suppress the output of "---"
+            out[1532] += nl_bias
 
         counter[int(token)] += 1
 
@@ -360,8 +357,8 @@ def on_generate(user: User, message: str, mode: str = "") -> str:
 
         if active_mode == "qa" and '\n\n' in reply:
             break
-        elif active_mode == "inst" and '''###---''' in reply:
-            reply = reply[:-6]
+        elif active_mode == "inst" and "\n---" in reply:
+            reply = reply[:-3]
             break
 
     save_all_state(user.id, "gen_1", out)
