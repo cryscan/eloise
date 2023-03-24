@@ -1,6 +1,7 @@
 import os
 import copy
 import sys
+import time
 import types
 import gc
 import re
@@ -51,6 +52,7 @@ args = types.SimpleNamespace()
 # args.strategy = 'cuda fp16 *8 -> cpu fp32'
 # args.strategy = 'cuda fp16 *6+'
 # args.strategy = 'cuda fp16 *0+ -> cpu fp32 *1'
+# args.strategy = 'cuda fp16 *32 -> cpu fp32'
 args.strategy = 'cuda fp16i8 *16 -> cuda fp16'
 
 # args.MODEL_NAME = '/root/autodl-tmp/Models/RWKV-4-Pile-7B-20221115-8047'
@@ -322,10 +324,10 @@ def on_generate(user: User, message: str, mode: str = "") -> str:
         save_all_state(user.id, "gen_0", out)
 
     active_mode = load_active_mode(user.id, "gen")
-
     counter = torch.zeros_like(out, device=out.device)
     begin = len(model_tokens)
     out_last = begin
+    start_time = time.time()
     for i in range(150):
         out = tokenizer.alpha_logits(out, counter, x_af, x_ap)
         token = tokenizer.sample_logits(out, x_temp, x_top_p)
@@ -345,6 +347,10 @@ def on_generate(user: User, message: str, mode: str = "") -> str:
         elif active_mode == "inst" and "\n---" in reply:
             reply = reply[:-3]
             break
+
+    end_time = time.time()
+    delta_time = end_time - start_time
+    print(f"\nTokens: {out_last - begin}\nTime: {delta_time}")
 
     gc.collect()
     torch.cuda.empty_cache()
