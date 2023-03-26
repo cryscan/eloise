@@ -115,44 +115,46 @@ __global__ void kernel_mm8_one(
 
     float4  sum = {0.0f, 0.0f, 0.0f, 0.0f};
     float   sum_x = 0;
-    float   sum_mx_x = 0;
+    float   sum_x_my = 0;
 
     for (int i = MM8_CHUNK * blockIdx.y; i < N; i += MM8_CHUNK * gridDim.y) {
         if (j < M) {
 #pragma unroll
             for (int k = 0; k < MM8_CHUNK; ++k) {
-                float   x_local = __half2float(ry[i + k]) * __half2float(x[i + k]);
-                uchar4  w_local = *(uchar4*)(w + (i + k) * w_stride + j);
+                float   x_ry_i  = __half2float(x[i + k]) * __half2float(ry[i + k]);
+                uchar4  w_ij    = *(uchar4*)(w + (i + k) * w_stride + j);   // Read 4 at once for efficiency
 
-                sum.x += x_local * (float(w_local.x) + 0.5f);
-                sum.y += x_local * (float(w_local.y) + 0.5f);
-                sum.z += x_local * (float(w_local.z) + 0.5f);
-                sum.w += x_local * (float(w_local.w) + 0.5f);
+                sum.x += x_ry_i * (float(w_ij.x) + 0.5f);
+                sum.y += x_ry_i * (float(w_ij.y) + 0.5f);
+                sum.z += x_ry_i * (float(w_ij.z) + 0.5f);
+                sum.w += x_ry_i * (float(w_ij.w) + 0.5f);
             }
         }
 
         int k = threadIdx.x % MM8_CHUNK;
-        float x_local   = __half2float(x[i + k]);
-        float m_local   = __half2float(my[i + k]);
-        sum_x       += x_local;
-        sum_mx_x    += x_local * m_local;
+        float x_i   = __half2float(x[i + k]);
+        float my_i  = __half2float(my[i + k]);
+        sum_x       += x_i;
+        sum_x_my    += x_i * my_i;
     }
 
+    // Each thread only summed a subset, reduce so everyone has the full sum
     for (int offset = MM8_CHUNK / 2; offset > 0; offset /= 2) {
         sum_x       += __shfl_xor_sync(0xffffffff, sum_x, offset, MM8_CHUNK);
-        sum_mx_x    += __shfl_xor_sync(0xffffffff, sum_mx_x, offset, MM8_CHUNK);
+        sum_x_my    += __shfl_xor_sync(0xffffffff, sum_x_my, offset, MM8_CHUNK);
     }
 
+    // We might need some threads with j >= M to calculate sum_x and sum_mx_x correctly, so we can't move this earlier
     if (j >= M) return;
 
-    float2 rx_0 = __half22float2(*(half2*)(rx + j));
-    float2 rx_1 = __half22float2(*(half2*)(rx + j + 2));
-    float2 mx_0 = __half22float2(*(half2*)(mx + j));
-    float2 mx_1 = __half22float2(*(half2*)(mx + j + 2));
-    atomicAdd(&y[j + 0], sum.x * rx_0.x + sum_x * mx_0.x + sum_mx_x);
-    atomicAdd(&y[j + 1], sum.y * rx_0.y + sum_x * mx_0.y + sum_mx_x);
-    atomicAdd(&y[j + 2], sum.z * rx_1.x + sum_x * mx_1.x + sum_mx_x);
-    atomicAdd(&y[j + 3], sum.w * rx_1.y + sum_x * mx_1.y + sum_mx_x);
+    float2 rx_j_0   = __half22float2(*(half2*)(rx + j));
+    float2 rx_j_1   = __half22float2(*(half2*)(rx + j + 2));
+    float2 mx_j_0   = __half22float2(*(half2*)(mx + j));
+    float2 mx_j_1   = __half22float2(*(half2*)(mx + j + 2));
+    atomicAdd(&y[j + 0], sum.x * rx_j_0.x + sum_x * mx_j_0.x + sum_x_my);
+    atomicAdd(&y[j + 1], sum.y * rx_j_0.y + sum_x * mx_j_0.y + sum_x_my);
+    atomicAdd(&y[j + 2], sum.z * rx_j_1.x + sum_x * mx_j_1.x + sum_x_my);
+    atomicAdd(&y[j + 3], sum.w * rx_j_1.y + sum_x * mx_j_1.y + sum_x_my);
 }
 
 void cuda_mm8_one(int N, int M,
