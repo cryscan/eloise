@@ -58,8 +58,7 @@ args.strategy = 'cuda fp16i8 *16 -> cuda fp16'
 # args.MODEL_NAME = '/root/autodl-tmp/Models/RWKV-4-Pile-7B-20221115-8047'
 # args.MODEL_NAME = '/root/autodl-tmp/Models/RWKV-4-Pile-14B-20230213-8019'
 # args.MODEL_NAME = '/root/autodl-tmp/Models/RWKV-4-Pile-14B-20230228-ctx4096-test663'
-# args.MODEL_NAME = '/root/autodl-tmp/Models/RWKV-4-Pile-14B-20230313-ctx8192-test1050'
-args.MODEL_NAME = '/root/autodl-tmp/Models/RWKV-4-Pile-14B-ctx8192-fp16i8'
+args.MODEL_NAME = '/root/autodl-tmp/Models/RWKV-4-Pile-14B-20230313-ctx8192-test1050'
 
 args.STATE_DUMP_NAME = './state_8k'
 
@@ -423,9 +422,9 @@ def on_message(user: User, message: str, alt: bool = False) -> str:
     torch.cuda.empty_cache()
     save_all_state(user.id, "chat", out)
 
-    reply = reply.replace(user.name(), user.nickname)
-    reply = reply.replace(user.name().lower(), user.nickname)
-    reply = reply.replace(user.name().upper(), user.nickname)
+    reply = reply.replace(user.name, user.nickname)
+    reply = reply.replace(user.name.lower(), user.nickname)
+    reply = reply.replace(user.name.upper(), user.nickname)
     reply = reply.strip()
     # reply = translate_message(reply, "en", src_lang)
     return reply
