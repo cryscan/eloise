@@ -52,13 +52,16 @@ args = types.SimpleNamespace()
 # args.strategy = 'cuda fp16 *8 -> cpu fp32'
 # args.strategy = 'cuda fp16 *6+'
 # args.strategy = 'cuda fp16 *0+ -> cpu fp32 *1'
+# args.strategy = 'cuda fp16 *20 -> cpu fp32'
 # args.strategy = 'cuda fp16 *32 -> cpu fp32'
-args.strategy = 'cuda fp16i8 *16 -> cuda fp16'
+args.strategy = 'cuda fp16i8 *20 -> cuda fp16'
 
 # args.MODEL_NAME = '/root/autodl-tmp/Models/RWKV-4-Pile-7B-20221115-8047'
 # args.MODEL_NAME = '/root/autodl-tmp/Models/RWKV-4-Pile-14B-20230213-8019'
 # args.MODEL_NAME = '/root/autodl-tmp/Models/RWKV-4-Pile-14B-20230228-ctx4096-test663'
-args.MODEL_NAME = '/root/autodl-tmp/Models/RWKV-4-Pile-14B-20230313-ctx8192-test1050'
+# args.MODEL_NAME = '/root/autodl-tmp/Models/RWKV-4-Pile-14B-20230313-ctx8192-test1050'
+args.MODEL_NAME = '/root/autodl-tmp/Models/RWKV-4-Pile-14B-Instruct-test4-20230327-ctx4096'
+# args.MODEL_NAME = '/root/autodl-tmp/Models/RWKV-4-Pile-7B-EngChn-test5-20230326'
 
 args.STATE_DUMP_NAME = './state_8k'
 
@@ -284,7 +287,7 @@ def on_generate(user: User, message: str, mode: str = "") -> str:
     x_af = 0.5
     x_ap = 0.2
     if mode == "inst":
-        x_temp = 0.2
+        x_temp = 0.8
         x_top_p = 0.5
         x_af = 0.1
         x_ap = 0.1
