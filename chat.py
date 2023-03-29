@@ -112,6 +112,12 @@ def run_rnn(tokens, nl_bias=0):
 all_state = {}
 
 
+def clean_user_state(uid, channel):
+    global all_state
+    n = f'{uid}_{channel}'
+    del all_state[n]
+
+
 def save_all_state(uid, channel, last_out):
     global all_state
     n = f'{uid}_{channel}'
@@ -171,20 +177,19 @@ def init_run():
         recover_all_state()
         print("Recovered state")
     except:
-        print("Loading chat intro male...")
+        print("Loading chat intro...")
         clear_current_state()
-        out = run_rnn(tokenizer.encode(prompt.default_male.chat_intro()))
-        save_all_state("", "chat_intro_male", out)
-        save_all_state("", "chat_intro_unknown", out)
+        out = run_rnn(tokenizer.encode(prompt.default_user.chat_intro()))
+        save_all_state("", "chat_intro", out)
 
-        print("Loading chat intro female...")
+        print("Loading Chinese chat intro...")
         clear_current_state()
-        out = run_rnn(tokenizer.encode(prompt.default_female.chat_intro()))
-        save_all_state("", "chat_intro_female", out)
+        out = run_rnn(tokenizer.encode(prompt.default_user.chat_intro_cn()))
+        save_all_state("", "chat_intro_cn", out)
 
         print("Loading instruct intro...")
         clear_current_state()
-        out = run_rnn(tokenizer.encode(prompt.default_male.instruct_intro()))
+        out = run_rnn(tokenizer.encode(prompt.default_user.instruct_intro()))
         save_all_state("", "instruct_intro", out)
 
         dump_all_state()
@@ -251,9 +256,11 @@ def translate_message(message, from_lang, to_lang):
 
 
 def on_reset(user: User) -> str:
-    out = load_all_state("", f"chat_intro_{user.sex}")
+    # out = load_all_state("", f"")
+    # save_all_state(user.id, "chat", out)
+    clean_user_state(user.id, "chat")
+
     reply = f"Chat reset for {user.nickname}."
-    save_all_state(user.id, "chat", out)
     return reply
 
 
@@ -373,15 +380,17 @@ def on_message(user: User, message: str, alt: bool = False) -> str:
     message, x_temp, x_top_p, x_af, x_ap = read_sampler_params(message)
     reply: str = ""
 
-    # src_lang = langid.classify(message)[0]
-    # message = translate_message(message, src_lang, "en")
+    lang = langid.classify(message)[0]
+    default_intro = "chat_intro_cn" if 'zh' in lang else "chat_intro"
+    # message = translate_message(message, lang, "en")
 
     if not alt:
         try:
             out = load_all_state(user.id, "chat")
         except:
-            out = load_all_state("", f"chat_intro_{user.sex}")
+            out = load_all_state("", default_intro)
             save_all_state(user.id, "chat", out)
+            print(f"Loaded chat intro {default_intro}")
         next = user.chat_format(message)
 
         out = run_rnn(tokenizer.encode(next), nl_bias=DONT_OUTPUT)
@@ -429,7 +438,7 @@ def on_message(user: User, message: str, alt: bool = False) -> str:
     reply = reply.replace(user.name.lower(), user.nickname)
     reply = reply.replace(user.name.upper(), user.nickname)
     reply = reply.strip()
-    # reply = translate_message(reply, "en", src_lang)
+    # reply = translate_message(reply, "en", lang)
     return reply
 
 
