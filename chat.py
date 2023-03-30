@@ -60,10 +60,10 @@ args.strategy = 'cuda fp16i8 *20 -> cuda fp16'
 # args.MODEL_NAME = '/root/autodl-tmp/Models/RWKV-4-Pile-14B-20230213-8019'
 # args.MODEL_NAME = '/root/autodl-tmp/Models/RWKV-4-Pile-14B-20230228-ctx4096-test663'
 # args.MODEL_NAME = '/root/autodl-tmp/Models/RWKV-4-Pile-14B-20230313-ctx8192-test1050'
-args.MODEL_NAME = '/root/autodl-tmp/Models/RWKV-4-Pile-14B-Instruct-test4-20230327-ctx4096'
-# args.MODEL_NAME = '/root/autodl-tmp/Models/RWKV-4-Pile-7B-EngChn-test5-20230326'
+args.MODEL_NAME = '/root/autodl-tmp/Models/RWKV-4-Pile-14B-Instruct-test5-20230329-ctx4096.pth'
+# args.MODEL_NAME = '/root/autodl-tmp/Models/RWKV-4-Pile-7B-EngChn-test5-20230330'
 
-args.STATE_DUMP_NAME = './state_8k'
+args.STATE_DUMP_NAME = './state_14b'
 
 args.vocab_size = 50277
 args.head_qk = 0
@@ -353,8 +353,8 @@ def on_generate(user: User, message: str, mode: str = "") -> str:
 
         if active_mode == "qa" and '\n\n' in reply:
             break
-        elif active_mode == "inst" and "\n---" in reply:
-            reply = reply[:-3]
+        elif active_mode == "inst" and "\n---\n" in reply:
+            reply = reply[:-len("\n---\n")]
             break
 
     end_time = time.time()
