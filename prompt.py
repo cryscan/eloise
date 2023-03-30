@@ -90,65 +90,65 @@ She also likes to tell {user} a lot about herself and her opinions, and she usua
 Below is an instruction that describes a task.\
 Write a response that appropriately completes the request and follows the instructions strictly.
 
-### Instruction:
+# Instruction:
 Describe the structure of an atom.
 
-### Response:
+# Response:
 An atom is made up of a nucleus, which contains protons and neutrons, surrounded by electrons that travel in orbits around the nucleus. The protons and neutrons have a positive charge, while the electrons have a negative charge, resulting in an overall neutral atom. The number of each particle determines the atomic number and the type of atom.
 ---
-### Instruction:
+# Instruction:
 What date did the World Trade Center attacks occur?
 
-### Response:
+# Response:
 The World Trade Center attacks occurred on September 11, 2001.
 ---
-### Instruction:
+# Instruction:
 Generate a title for a research paper about animal rights.
 
-### Response:
+# Response:
 \"Fostering a Culture of Compassion: Perspectives on Animal Rights\"
 ---
-### Instruction:
+# Instruction:
 Identify the parts of speech in the following sentence:\nThe dog chased the cat across the street.
 
-### Response:
+# Response:
 The (Article): dog (Noun): chased (Verb): the (Article): cat (Noun): across (Preposition): the (Article): street (Noun).
 ---
-### Instruction:
+# Instruction:
 Generate an excerpt of dialogue related to a complex problem.
 
-### Response:
+# Response:
 \"We need to figure out a way to solve this problem,\" said John.\n\n\"It's going to be difficult,\" replied Sarah. \"It's a complex issue and we'll have to look at it from all angles to come up with a solution.\"\n\n\"Well, let's start by breaking the problem down into smaller pieces and analyzing each of them separately,\" suggested John.\n\n\"Good idea,\" Sarah agreed. \"We can then look at the individual components and find solutions for each of them.\"
 ---
-### Instruction:
+# Instruction:
 Generate code to prompt a user to enter their name
 
-### Response:
+# Response:
 print(\"Please enter your name: \")\nname = input()
 ---
-### Instruction:
+# Instruction:
 Name 5 adventure sports
 
-### Response:
+# Response:
 1. Skydiving \n2. Mountain Climbing \n3. Surfing \n4. Bungee Jumping \n5. Heli-skiing
 ---
-### Instruction:
+# Instruction:
 Complete the sentence: \"The light of the moon _____________.\"
 
-### Response:
+# Response:
 The light of the moon glimmers in the sky.
 ---
-### Instruction:
+# Instruction:
 Translate the phrase \"Life is a journey\" into a foreign language of your choice.
 
-### Response:
+# Response:
 La vida es un viaje (Spanish).
 ---
 '''
 
     def instruct_format(self, message: str):
         message = message.replace('\n', ' ').strip()
-        return f'''### Instruction:\n{message}\n\n### Response:\n'''
+        return f'''# Instruction:\n{message}\n\n# Response:\n'''
 
 
 default_user = User({

@@ -191,6 +191,9 @@ class RWKV(MyModule):
 
             ####################### Load weights to self.w
 
+            # Add vocabulary padding
+            self.vocab_pad = (-w['head.weight'].shape[1]) % 64
+
             if not ALREADY_CONVERTED:
                 try: # precompute embedding
                     w['emb.weight'] = F.layer_norm(w['emb.weight'], (args.n_embd,), weight=w['blocks.0.ln0.weight'], bias=w['blocks.0.ln0.bias'])
@@ -210,6 +213,10 @@ class RWKV(MyModule):
                 DEVICE = dd.device
                 ATYPE = dd.atype
                 WTYPE = dd.wtype
+
+                # Add vocabulary padding
+                if x in ['head.weight', 'head.weight_rx', 'head.weight_mx']:
+                    w[x] = F.pad(input=w[x], pad=(0,self.vocab_pad), mode='constant', value=0)
 
                 if not ALREADY_CONVERTED:
                     if self.RESCALE_LAYER > 0:
@@ -283,9 +290,7 @@ class RWKV(MyModule):
                             pass
 
                 if 'ffn.value.weight' in x:
-                    gc.collect()
-                    if 'cuda' in args.strategy_string:
-                        torch.cuda.empty_cache()
+                    self.clear_cache()
 
                 shape = [i for i in w[x].shape if i != 1]
                 if len(shape) > 1:
@@ -313,17 +318,13 @@ class RWKV(MyModule):
                 torch.save(w, convert_and_save_and_exit)
                 prxxx(f'Converted and saved. Now this will exit.')
                 exit(0)
-            
-            # Add vocabulary padding
-            self.vocab_pad = (-w['head.weight'].shape[1]) % 64
-            if self.vocab_pad:
-                for x in w.keys():
-                    if x in ['head.weight', 'head.weight_rx', 'head.weight_mx']:
-                        w[x] = F.pad(input=w[x], pad=(0,self.vocab_pad), mode='constant', value=0)
 
-            gc.collect()
-            if 'cuda' in args.strategy_string:
-                torch.cuda.empty_cache()
+    def clear_cache(self):
+        gc.collect()
+        if 'cuda' in self.args.strategy_string:
+            torch.cuda.empty_cache()
+
+    ########################################################################################################
 
     @MyFunction
     def mm8_seq(self, x, w, mx, rx, my, ry):

@@ -52,7 +52,6 @@ args = types.SimpleNamespace()
 # args.strategy = 'cuda fp16 *8 -> cpu fp32'
 # args.strategy = 'cuda fp16 *6+'
 # args.strategy = 'cuda fp16 *0+ -> cpu fp32 *1'
-# args.strategy = 'cuda fp16 *20 -> cpu fp32'
 # args.strategy = 'cuda fp16 *32 -> cpu fp32'
 args.strategy = 'cuda fp16i8 *20 -> cuda fp16'
 
@@ -93,7 +92,7 @@ for i in AVOID_REPEAT:
     AVOID_REPEAT_TOKENS += dd
 
 
-def run_rnn(tokens, nl_bias=0):
+def run_rnn(tokens, end_bias=DONT_OUTPUT, nl_bias=0):
     global model_tokens, model_state
 
     tokens = [int(x) for x in tokens]
@@ -103,7 +102,7 @@ def run_rnn(tokens, nl_bias=0):
         out, model_state = model.forward(tokens[:CHUNK_LEN], model_state)
         tokens = tokens[CHUNK_LEN:]
 
-    out[0] = DONT_OUTPUT
+    out[0] += end_bias
     out[187] += nl_bias
 
     return out
