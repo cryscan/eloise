@@ -115,7 +115,8 @@ all_state = {}
 def clean_user_state(uid, channel):
     global all_state
     n = f'{uid}_{channel}'
-    del all_state[n]
+    if n in all_state.keys():
+        del all_state[n]
 
 
 def save_all_state(uid, channel, last_out):
