@@ -53,6 +53,7 @@ args = types.SimpleNamespace()
 # args.strategy = 'cuda fp16 *6+'
 # args.strategy = 'cuda fp16 *0+ -> cpu fp32 *1'
 # args.strategy = 'cuda fp16 *32 -> cpu fp32'
+# args.strategy = 'cuda fp16 *20 -> cpu fp32'
 args.strategy = 'cuda fp16i8 *20 -> cuda fp16'
 
 # args.MODEL_NAME = '/root/autodl-tmp/Models/RWKV-4-Pile-7B-20221115-8047'
@@ -416,7 +417,12 @@ def on_message(user: User, message: str, alt: bool = False) -> str:
 
         out = tokenizer.alpha_logits(out, counter, x_af, x_ap)
         token = tokenizer.sample_logits(out, x_temp, x_top_p)
-        out = run_rnn([token], nl_bias=nl_bias)
+
+        next_tokens = [token]
+        if token == 0:
+            next_tokens = tokenizer.encode('\n\n')
+
+        out = run_rnn(next_tokens, end_bias=0, nl_bias=nl_bias)
         counter[int(token)] += 1
 
         xxx = tokenizer.decode(model_tokens[out_last:])
