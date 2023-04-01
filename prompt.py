@@ -40,7 +40,7 @@ She also likes to tell {user} a lot about herself and her opinions, and she usua
 
         return intro
 
-    def chat_intro_cn(self):
+    def chat_intro_zh(self):
         interface = self.interface
 
         user = self.name

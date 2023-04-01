@@ -36,7 +36,7 @@ Example starting:
 ---- FREE GENERATION ----
 -h, -help: Show this help
 -g, -gen <text>: Generate text
--t, -retry: Retry last generation
+-r, -retry: Retry last generation
 -m, -more: Continue generating more
 '''
 
@@ -58,7 +58,7 @@ def commands(user: User, message, enable_chat=False, is_private=False):
     help_match = re.match("\-h(elp)?", message)
 
     translate_match = re.match("\-tr", message)
-    retry_match = re.match("\-(retry|t)", message)
+    retry_match = re.match("\-(retry|r)", message)
     more_match = re.match("\-m(ore)?", message)
     gen_match = re.match("\-g(en)?\s+", message)
     qa_match = re.match("\-qa\s+", message)

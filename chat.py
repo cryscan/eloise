@@ -38,12 +38,14 @@ SAME_LANG = "PLEASE SELECT TWO DISTINCT LANGUAGES"
 
 tokenizer = TOKENIZER("20B_tokenizer.json")
 
-DONT_OUTPUT = -999999999
-MAX_REPLY_LEN = 1024
+DONT_OUTPUT = -float('inf')
 AVOID_REPEAT = '，。：？！'
 
 MAX_MESSAGE_LEN = 4096
 CHUNK_LEN = 128
+
+MAX_GENERATE_LEN = 150
+MAX_REPLY_LEN = 1024
 
 args = types.SimpleNamespace()
 
@@ -56,12 +58,12 @@ args = types.SimpleNamespace()
 # args.strategy = 'cuda fp16 *20 -> cpu fp32'
 args.strategy = 'cuda fp16i8 *20 -> cuda fp16'
 
-# args.MODEL_NAME = '/root/autodl-tmp/Models/RWKV-4-Pile-7B-20221115-8047'
-# args.MODEL_NAME = '/root/autodl-tmp/Models/RWKV-4-Pile-14B-20230213-8019'
-# args.MODEL_NAME = '/root/autodl-tmp/Models/RWKV-4-Pile-14B-20230228-ctx4096-test663'
-# args.MODEL_NAME = '/root/autodl-tmp/Models/RWKV-4-Pile-14B-20230313-ctx8192-test1050'
-args.MODEL_NAME = '/root/autodl-tmp/Models/RWKV-4-Pile-14B-Instruct-test5-20230329-ctx4096.pth'
-# args.MODEL_NAME = '/root/autodl-tmp/Models/RWKV-4-Pile-7B-EngChn-test5-20230330'
+# args.MODEL_NAME = '/root/autodl-tmp/models/RWKV-4-Pile-7B-20221115-8047'
+# args.MODEL_NAME = '/root/autodl-tmp/models/RWKV-4-Pile-14B-20230213-8019'
+# args.MODEL_NAME = '/root/autodl-tmp/models/RWKV-4-Pile-14B-20230228-ctx4096-test663'
+# args.MODEL_NAME = '/root/autodl-tmp/models/RWKV-4-Pile-14B-20230313-ctx8192-test1050'
+args.MODEL_NAME = '/root/autodl-tmp/models/RWKV-4-Pile-14B-Instruct-test5-20230329-ctx4096.pth'
+# args.MODEL_NAME = '/root/autodl-tmp/models/RWKV-4-Pile-7B-EngChn-test5-20230330'
 
 args.STATE_DUMP_NAME = './state_14b'
 
@@ -182,8 +184,8 @@ def init_run():
 
         print("Loading Chinese chat intro...")
         clear_current_state()
-        out = run_rnn(tokenizer.encode(prompt.default_user.chat_intro_cn()))
-        save_all_state("", "chat_intro_cn", out)
+        out = run_rnn(tokenizer.encode(prompt.default_user.chat_intro_zh()))
+        save_all_state("", "chat_intro_zh", out)
 
         print("Loading instruct intro...")
         clear_current_state()
@@ -209,38 +211,33 @@ def clamp(n, minimum, maximum):
 
 
 def read_sampler_params(message: str, temp=1.0, top_p=0.8, af=0.5, ap=0.2):
-    x_temp = temp
-    x_top_p = top_p
-    x_af = af
-    x_ap = ap
-
     temp_match = re.search("(\-temp\s*=\s*)([^\s]+)\s+", message)
     top_p_match = re.search("(\-top_p\s*=\s*)([^\s]+)\s+", message)
     af_match = re.search("(\-af\s*=\s*)([^\s]+)\s+", message)
     ap_match = re.search("(\-ap\s*=\s*)([^\s]+)\s+", message)
 
     if temp_match is not None:
-        x_temp = float(temp_match.group(2))
+        temp = float(temp_match.group(2))
         message = message.replace(temp_match.group(0), "")
-        print(f"temp: {x_temp}")
+        print(f"temp: {temp}")
     if top_p_match is not None:
-        x_top_p = float(top_p_match.group(2))
+        top_p = float(top_p_match.group(2))
         message = message.replace(top_p_match.group(0), "")
-        print(f"top_p: {x_top_p}")
+        print(f"top_p: {top_p}")
     if af_match is not None:
-        x_af = float(af_match.group(2))
+        af = float(af_match.group(2))
         message = message.replace(af_match.group(0), "")
-        print(f"af: {x_af}")
+        print(f"af: {af}")
     if ap_match is not None:
-        x_ap = float(ap_match.group(2))
+        ap = float(ap_match.group(2))
         message = message.replace(ap_match.group(0), "")
-        print(f"ap: {x_ap}")
+        print(f"ap: {ap}")
 
-    x_temp = clamp(x_temp, 0.2, 5)
-    x_top_p = max(0, x_top_p)
-    x_af = clamp(x_af, 0.0, 1.0)
-    x_ap = clamp(x_ap, 0.0, 1.0)
-    return message, x_temp, x_top_p, x_af, x_ap
+    temp = clamp(temp, 0.2, 5)
+    top_p = max(0, top_p)
+    af = clamp(af, 0.0, 1.0)
+    ap = clamp(ap, 0.0, 1.0)
+    return message, temp, top_p, af, ap
 
 
 def translate_message(message, from_lang, to_lang):
@@ -287,18 +284,19 @@ def on_generate(user: User, message: str, mode: str = "") -> str:
     if mode != "retry" and mode != "more":
         save_active_mode(user.id, "gen", mode)
 
-    x_temp = 1.0
-    x_top_p = 0.8
-    x_af = 0.5
-    x_ap = 0.2
     if mode == "inst":
-        x_temp = 0.8
-        x_top_p = 0.5
-        x_af = 0.1
-        x_ap = 0.1
+        temp = 0.8
+        top_p = 0.5
+        af = 0.1
+        ap = 0.1
+    else:
+        temp = 1.0
+        top_p = 0.8
+        af = 0.5
+        ap = 0.2
 
-    message, x_temp, x_top_p, x_af, x_ap = read_sampler_params(
-        message, x_temp, x_top_p, x_af, x_ap)
+    message, temp, top_p, af, ap = read_sampler_params(
+        message, temp, top_p, af, ap)
 
     reply: str = ""
 
@@ -336,12 +334,13 @@ def on_generate(user: User, message: str, mode: str = "") -> str:
 
     begin = len(model_tokens)
     out_last = begin
-    for i in range(150):
-        out[0] = DONT_OUTPUT
+    for i in range(MAX_GENERATE_LEN):
+        if active_mode != "qa":
+            out[0] = DONT_OUTPUT
         for n in occurrence:
-            out[n] -= x_ap + occurrence[n] * x_af
+            out[n] -= ap + occurrence[n] * af
 
-        token = tokenizer.sample_logits(out, x_temp, x_top_p)
+        token = tokenizer.sample_logits(out, temp, top_p)
         if token not in occurrence:
             occurrence[token] = 1
         else:
@@ -357,7 +356,7 @@ def on_generate(user: User, message: str, mode: str = "") -> str:
         reply = tokenizer.decode(model_tokens[begin:])
         reply = reply.replace("\r\n", '\n').replace('\\n', '\n')
 
-        if active_mode == "qa" and '\n\n' in reply:
+        if active_mode == "qa" and token == 0:
             break
         elif active_mode == "inst" and "\n---\n" in reply:
             reply = reply[:-len("\n---\n")]
@@ -383,23 +382,19 @@ def on_message(user: User, message: str, alt: bool = False) -> str:
         return f"Your message is too long! (max {MAX_MESSAGE_LEN} tokens)"
     print(message)
 
-    message, x_temp, x_top_p, x_af, x_ap = read_sampler_params(message)
+    message, temp, top_p, af, ap = read_sampler_params(message)
     reply: str = ""
-
-    lang = langid.classify(message)[0]
-    default_intro = "chat_intro_cn" if 'zh' in lang else "chat_intro"
-    # message = translate_message(message, lang, "en")
 
     if not alt:
         try:
             out = load_all_state(user.id, "chat")
         except:
-            out = load_all_state("", default_intro)
+            lang = langid.classify(message)[0]
+            intro = "chat_intro_zh" if 'zh' in lang else "chat_intro"
+            out = load_all_state("", intro)
             save_all_state(user.id, "chat", out)
-            print(f"Loaded chat intro {default_intro}")
-        next = user.chat_format(message)
-
-        out = run_rnn(tokenizer.encode(next))
+        message = user.chat_format(message)
+        out = run_rnn(tokenizer.encode(message))
         save_all_state(user.id, "chat_previous", out)
     else:
         try:
@@ -419,12 +414,11 @@ def on_message(user: User, message: str, alt: bool = False) -> str:
             nl_bias = 0
         else:
             nl_bias = (i - 130) * 0.25
-
         out[187] += nl_bias
         for n in occurrence:
-            out[n] -= x_ap + occurrence[n] * x_af
+            out[n] -= ap + occurrence[n] * af
 
-        token = tokenizer.sample_logits(out, x_temp, x_top_p)
+        token = tokenizer.sample_logits(out, temp, top_p)
         if token not in occurrence:
             occurrence[token] = 1
         else:
