@@ -43,10 +43,6 @@ class TOKENIZER():
     def decode(self, x):
         return self.tokenizer.decode(x)
 
-    def alpha_logits(self, logits, counter, alpha_frequency=0.5, alpha_presence=0.2):
-        presense = torch.gt(counter, torch.zeros_like(counter)).float()
-        return logits - counter * alpha_frequency - presense * alpha_presence
-
     def sample_logits(self, logits, temperature=1.0, top_p=1.0, top_k=0):
         probs = F.softmax(logits.float(), dim=-1)
         top_k = int(top_k)

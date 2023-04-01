@@ -93,7 +93,7 @@ for i in AVOID_REPEAT:
     AVOID_REPEAT_TOKENS += dd
 
 
-def run_rnn(tokens, end_bias=DONT_OUTPUT, nl_bias=0):
+def run_rnn(tokens):
     global model_tokens, model_state
 
     tokens = [int(x) for x in tokens]
@@ -102,9 +102,6 @@ def run_rnn(tokens, end_bias=DONT_OUTPUT, nl_bias=0):
     while len(tokens) > 0:
         out, model_state = model.forward(tokens[:CHUNK_LEN], model_state)
         tokens = tokens[CHUNK_LEN:]
-
-    out[0] += end_bias
-    out[187] += nl_bias
 
     return out
 
@@ -318,31 +315,39 @@ def on_generate(user: User, message: str, mode: str = "") -> str:
             return reply
     elif mode == "qa":
         clear_current_state()
-        next = user.qa_format(message)
-        out = run_rnn(tokenizer.encode(next))
+        message = user.qa_format(message)
+        out = run_rnn(tokenizer.encode(message))
         save_all_state(user.id, "gen_0", out)
     elif mode == "inst":
         clear_current_state()
         out = load_all_state("", f"instruct_intro")
-        next = user.instruct_format(message)
-        out = run_rnn(tokenizer.encode(next))
+        message = user.instruct_format(message)
+        out = run_rnn(tokenizer.encode(message))
         save_all_state(user.id, "gen_0", out)
     else:
         clear_current_state()
-        next = '\n' + message.strip()
-        out = run_rnn(tokenizer.encode(next))
+        message = '\n' + message.strip()
+        out = run_rnn(tokenizer.encode(message))
         save_all_state(user.id, "gen_0", out)
 
     active_mode = load_active_mode(user.id, "gen")
-    counter = torch.zeros_like(out, device=out.device)
+    occurrence = {}
+    start_time = time.time()
+
     begin = len(model_tokens)
     out_last = begin
-    start_time = time.time()
     for i in range(150):
-        out = tokenizer.alpha_logits(out, counter, x_af, x_ap)
+        out[0] = DONT_OUTPUT
+        for n in occurrence:
+            out[n] -= x_ap + occurrence[n] * x_af
+
         token = tokenizer.sample_logits(out, x_temp, x_top_p)
+        if token not in occurrence:
+            occurrence[token] = 1
+        else:
+            occurrence[token] += 1
+
         out = run_rnn([token])
-        counter[int(token)] += 1
 
         xxx = tokenizer.decode(model_tokens[out_last:])
         if '\ufffd' not in xxx:
@@ -394,7 +399,7 @@ def on_message(user: User, message: str, alt: bool = False) -> str:
             print(f"Loaded chat intro {default_intro}")
         next = user.chat_format(message)
 
-        out = run_rnn(tokenizer.encode(next), nl_bias=DONT_OUTPUT)
+        out = run_rnn(tokenizer.encode(next))
         save_all_state(user.id, "chat_previous", out)
     else:
         try:
@@ -402,7 +407,7 @@ def on_message(user: User, message: str, alt: bool = False) -> str:
         except:
             return reply
 
-    counter = torch.zeros_like(out, device=out.device)
+    occurrence = {}
     begin = len(model_tokens)
     out_last = begin
     for i in range(MAX_REPLY_LEN):
@@ -415,15 +420,21 @@ def on_message(user: User, message: str, alt: bool = False) -> str:
         else:
             nl_bias = (i - 130) * 0.25
 
-        out = tokenizer.alpha_logits(out, counter, x_af, x_ap)
+        out[187] += nl_bias
+        for n in occurrence:
+            out[n] -= x_ap + occurrence[n] * x_af
+
         token = tokenizer.sample_logits(out, x_temp, x_top_p)
+        if token not in occurrence:
+            occurrence[token] = 1
+        else:
+            occurrence[token] += 1
 
         next_tokens = [token]
         if token == 0:
             next_tokens = tokenizer.encode('\n\n')
 
-        out = run_rnn(next_tokens, end_bias=0, nl_bias=nl_bias)
-        counter[int(token)] += 1
+        out = run_rnn(next_tokens)
 
         xxx = tokenizer.decode(model_tokens[out_last:])
         if '\ufffd' not in xxx:
