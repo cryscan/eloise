@@ -148,7 +148,15 @@ La vida es un viaje (Spanish).
 
     def instruct_format(self, message: str):
         message = message.replace('\n', ' ').strip()
-        return f'''# Instruction:\n{message}\n\n# Response:\n'''
+        return f'''
+Below is an instruction that describes a task.\
+Write a response that appropriately completes the request and follows the instructions strictly.
+
+# Instruction:
+{message}
+
+# Response:
+'''
 
 
 default_user = User({

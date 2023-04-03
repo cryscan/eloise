@@ -318,7 +318,7 @@ def on_generate(user: User, message: str, mode: str = "") -> str:
         save_all_state(user.id, "gen_0", out)
     elif mode == "inst":
         clear_current_state()
-        out = load_all_state("", f"instruct_intro")
+        # out = load_all_state("", f"instruct_intro")
         message = user.instruct_format(message)
         out = run_rnn(tokenizer.encode(message))
         save_all_state(user.id, "gen_0", out)
@@ -335,7 +335,7 @@ def on_generate(user: User, message: str, mode: str = "") -> str:
     begin = len(model_tokens)
     out_last = begin
     for i in range(MAX_GENERATE_LEN):
-        if active_mode != "qa":
+        if active_mode != "qa" and active_mode != "inst":
             out[0] = DONT_OUTPUT
         for n in occurrence:
             out[n] -= ap + occurrence[n] * af
@@ -356,7 +356,7 @@ def on_generate(user: User, message: str, mode: str = "") -> str:
         reply = tokenizer.decode(model_tokens[begin:])
         reply = reply.replace("\r\n", '\n').replace('\\n', '\n')
 
-        if active_mode == "qa" and token == 0:
+        if token == 0:
             break
         elif active_mode == "inst" and "\n---\n" in reply:
             reply = reply[:-len("\n---\n")]
