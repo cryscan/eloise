@@ -383,13 +383,13 @@ def on_message(user: User, message: str, alt: bool = False) -> str:
     print(message)
 
     message, temp, top_p, af, ap = read_sampler_params(message)
+    lang = langid.classify(message)[0]
     reply: str = ""
 
     if not alt:
         try:
             out = load_all_state(user.id, "chat")
         except:
-            lang = langid.classify(message)[0]
             intro = "chat_intro_zh" if 'zh' in lang else "chat_intro"
             out = load_all_state("", intro)
             save_all_state(user.id, "chat", out)
@@ -406,14 +406,24 @@ def on_message(user: User, message: str, alt: bool = False) -> str:
     begin = len(model_tokens)
     out_last = begin
     for i in range(MAX_REPLY_LEN):
-        if i <= 0:
-            nl_bias = DONT_OUTPUT
-        elif i <= 30:
-            nl_bias = (i - 30) * 0.1
-        elif i <= 130:
-            nl_bias = 0
+        if 'zh' in lang or 'jp' in lang:
+            if i <= 0:
+                nl_bias = DONT_OUTPUT
+            elif i <= 75:
+                nl_bias = (i - 75) * 0.1
+            elif i <= 325:
+                nl_bias = 0
+            else:
+                nl_bias = (i - 325) * 0.25
         else:
-            nl_bias = (i - 130) * 0.25
+            if i <= 0:
+                nl_bias = DONT_OUTPUT
+            elif i <= 30:
+                nl_bias = (i - 30) * 0.1
+            elif i <= 130:
+                nl_bias = 0
+            else:
+                nl_bias = (i - 130) * 0.25
         out[187] += nl_bias
         for n in occurrence:
             out[n] -= ap + occurrence[n] * af
