@@ -62,7 +62,8 @@ args.strategy = 'cuda fp16i8 *20 -> cuda fp16'
 # args.MODEL_NAME = '/root/autodl-tmp/models/RWKV-4-Pile-14B-20230213-8019'
 # args.MODEL_NAME = '/root/autodl-tmp/models/RWKV-4-Pile-14B-20230228-ctx4096-test663'
 # args.MODEL_NAME = '/root/autodl-tmp/models/RWKV-4-Pile-14B-20230313-ctx8192-test1050'
-args.MODEL_NAME = '/root/autodl-tmp/models/RWKV-4-Raven-14B-v6-EngChnJpn-20230401-ctx4096'
+# args.MODEL_NAME = '/root/autodl-tmp/models/RWKV-4-Pile-14B-Instruct-test5-20230329-ctx4096'
+args.MODEL_NAME = '/root/autodl-tmp/models/RWKV-4-Raven-14B-v7-Eng-20230404-ctx4096'
 # args.MODEL_NAME = '/root/autodl-tmp/models/RWKV-4-Pile-7B-EngChn-test5-20230330'
 
 args.STATE_DUMP_NAME = './state_14b'
@@ -182,15 +183,20 @@ def init_run():
         out = run_rnn(tokenizer.encode(prompt.default_user.chat_intro()))
         save_all_state("", "chat_intro", out)
 
-        print("Loading Chinese chat intro...")
-        clear_current_state()
-        out = run_rnn(tokenizer.encode(prompt.default_user.chat_intro_zh()))
-        save_all_state("", "chat_intro_zh", out)
+        # print("Loading Chinese chat intro...")
+        # clear_current_state()
+        # out = run_rnn(tokenizer.encode(prompt.default_user.chat_intro_zh()))
+        # save_all_state("", "chat_intro_zh", out)
 
-        print("Loading instruct intro...")
+        print("Loading bot chat intro...")
         clear_current_state()
-        out = run_rnn(tokenizer.encode(prompt.default_user.instruct_intro()))
-        save_all_state("", "instruct_intro", out)
+        out = run_rnn(tokenizer.encode(prompt.default_user.chat_intro_bot()))
+        save_all_state("", "chat_intro_bot", out)
+
+        # print("Loading instruct intro...")
+        # clear_current_state()
+        # out = run_rnn(tokenizer.encode(prompt.default_user.instruct_intro()))
+        # save_all_state("", "instruct_intro", out)
 
         dump_all_state()
 
@@ -251,11 +257,20 @@ def translate_message(message, from_lang, to_lang):
 
 
 def on_reset(user: User) -> str:
-    # out = load_all_state("", f"")
-    # save_all_state(user.id, "chat", out)
-    clean_user_state(user.id, "chat")
+    # clean_user_state(user.id, "chat")
+    out = load_all_state("", "chat_intro")
+    save_all_state(user.id, "chat", out)
 
     reply = f"Chat reset for {user.nickname}."
+    return reply
+
+
+def on_reset_bot(user: User) -> str:
+    # clean_user_state(user.id, "chat")
+    out = load_all_state("", "chat_intro_bot")
+    save_all_state(user.id, "chat", out)
+
+    reply = f"Chat reset for {user.nickname}. Bot context loaded."
     return reply
 
 
@@ -390,7 +405,8 @@ def on_message(user: User, message: str, alt: bool = False) -> str:
         try:
             out = load_all_state(user.id, "chat")
         except:
-            intro = "chat_intro_zh" if 'zh' in lang else "chat_intro"
+            # intro = "chat_intro_zh" if 'zh' in lang else "chat_intro"
+            intro = "chat_intro"
             out = load_all_state("", intro)
             save_all_state(user.id, "chat", out)
         message = user.chat_format(message)

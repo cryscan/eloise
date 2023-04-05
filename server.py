@@ -25,11 +25,6 @@ non_chat_groups = [143626394]
 
 HELP_MESSAGE = '''Note: <text> means "any text"
 
-It's recommanded to ASK her more!
-Example starting:
-1. What's your interesting news today?
-2. I heard you are a <expert>. Can I ask you some questions?
-
 ---- MISC UTILITIES  ----
 -tr <text>: Translate
 
@@ -44,7 +39,8 @@ MORE_HELP_MESSAGE = '''-qa <text>: Ask questions
 -i, -inst <text>: Follow instructions
 
 ---- CHAT WITH CONTEXT ----
--s, -reset: Reset your chat chain
+-s, -reset: Reset your chat chain (casual)
+-b, -bot: Reset your char chain (AI assistant)
 -alt: Alternative reply
 '''
 
@@ -65,7 +61,7 @@ def commands(user: User, message, enable_chat=False, is_private=False):
     inst_match = re.match("\-i(nst)?\s+", message)
 
     reset_match = re.match("\-(reset|s)", message)
-    reset_chinese_match = re.match("\-sc", message)
+    reset_bot_match = re.match("\-(bot|b)", message)
     alt_match = re.match("\-alt", message)
     chat_match = re.match("\-c(hat)?\s+", message)
 
@@ -99,8 +95,8 @@ def commands(user: User, message, enable_chat=False, is_private=False):
     elif enable_chat and inst_match:
         prompt = message[inst_match.end():]
         reply = chat.on_generate(user, prompt, mode="inst")
-    elif enable_chat and reset_chinese_match:
-        reply = chat.on_reset(user)
+    elif enable_chat and reset_bot_match:
+        reply = chat.on_reset_bot(user)
     elif enable_chat and reset_match:
         reply = chat.on_reset(user)
     elif enable_chat and alt_match:

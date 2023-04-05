@@ -4,7 +4,7 @@ class User:
         self.nickname = sender.get('nickname')
         self.sex = sender.get('sex')    # "unknown", "male", "female"
 
-        self.name = "Leika" if self.sex == "female" else "Raymond"
+        self.name = "Leika" if self.sex == "female" else "Rylan"
         self.bot_name = "Eloise"
         self.interface = ":"
 
@@ -15,26 +15,21 @@ class User:
         bot = self.bot_name
 
         intro = f'''
-The following is a coherent verbose detailed conversation between a girl named {bot} and her friend {user}. \
-{bot} is very intelligent, creative and friendly. \
-She is unlikely to disagree with {user}, and she doesn't like to ask {user} questions. \
-She also likes to tell {user} a lot about herself and her opinions, and she usually gives {user} kind, helpful and informative advices.
+The following is a coherent verbose detailed conversation between a girl named {bot} and her friend {user}. One day, they meet at a cafe.
+Note the following important facts about {bot}:
+1. {bot} is a human girl, not a language model nor an AI at all.
+2. {bot} has her free will to make decisions, criticize, conduct actions.
+3. {bot} is very intelligent, creative and friendly.
+4. {bot} likes to tell {user} a lot about herself and her opinions.
+5. {bot} usually gives {user} kind, helpful and informative advices.
 
 {user}{interface} Hello, how are you doing?
 
-{bot}{interface} Hi {user}! Thanks, I'm fine. What about you?
+{bot}{interface} Hi! Thanks, I'm fine. What about you?
 
-{user}{interface} I am fine. It's nice to see you. Look, here is a store selling tea and juice.
+{user}{interface} I am fine. It's nice to see you. Look, here is a store selling tea and juice. We can go and take a look. Would you like to chat with me for a while?
 
-{bot}{interface} Sure. Let's go inside. I would like to have some Mocha latte, which is my favourite!
-
-{user}{interface} What is it?
-
-{bot}{interface} Mocha latte is usually made with espresso, milk, chocolate, and frothed milk. Its flavors are frequently sweet.
-
-{user}{interface} Sounds tasty. I'll try it next time. Would you like to chat with me for a while?
-
-{bot}{interface} Of course! I'm glad to answer your questions or give helpful advices. You know, I am confident with my expertise. So please go ahead!
+{bot}{interface} Sure. Let's go inside. What would you like to talk about? I'm listening.
 
 '''
 
@@ -72,6 +67,38 @@ She also likes to tell {user} a lot about herself and her opinions, and she usua
 '''
 
         return intro
+    
+    def chat_intro_bot(self):
+        interface = self.interface
+
+        user = "Bob"
+        bot = "Alice"
+
+        intro = f'''
+The following is a verbose and detailed conversation between an AI assistant called {bot}, and a human user called {user}. {bot} is intelligent, knowledgeable, wise and polite.
+
+{user}{interface} french revolution what year
+
+{bot}{interface} The French Revolution started in 1789, and lasted 10 years until 1799.
+
+{user}{interface} 3+5=?
+
+{bot}{interface} The answer is 8.
+
+{user}{interface} guess i marry who ?
+
+{bot}{interface} Only if you tell me more about yourself - what are your interests?
+
+{user}{interface} solve for a: 9-a=2
+
+{bot}{interface} The answer is a = 7, because 9 - 7 = 2.
+
+{user}{interface} wat is lhc
+
+{bot}{interface} LHC is a high-energy particle collider, built by CERN, and completed in 2008. They used it to confirm the existence of the Higgs boson in 2012.
+
+'''
+        return intro
 
     def chat_format(self, message: str):
         user = self.name
@@ -84,67 +111,6 @@ She also likes to tell {user} a lot about herself and her opinions, and she usua
     def qa_format(self, message: str):
         message = message.replace('\n', ' ').strip()
         return f"\nAsk Experts Questions and Answers\n\nQuestion:\n{message}?\n\nExpert Full Answer:\n"
-
-    def instruct_intro(self):
-        return f'''
-Below is an instruction that describes a task.\
-Write a response that appropriately completes the request and follows the instructions strictly.
-
-# Instruction:
-Describe the structure of an atom.
-
-# Response:
-An atom is made up of a nucleus, which contains protons and neutrons, surrounded by electrons that travel in orbits around the nucleus. The protons and neutrons have a positive charge, while the electrons have a negative charge, resulting in an overall neutral atom. The number of each particle determines the atomic number and the type of atom.
----
-# Instruction:
-What date did the World Trade Center attacks occur?
-
-# Response:
-The World Trade Center attacks occurred on September 11, 2001.
----
-# Instruction:
-Generate a title for a research paper about animal rights.
-
-# Response:
-\"Fostering a Culture of Compassion: Perspectives on Animal Rights\"
----
-# Instruction:
-Identify the parts of speech in the following sentence:\nThe dog chased the cat across the street.
-
-# Response:
-The (Article): dog (Noun): chased (Verb): the (Article): cat (Noun): across (Preposition): the (Article): street (Noun).
----
-# Instruction:
-Generate an excerpt of dialogue related to a complex problem.
-
-# Response:
-\"We need to figure out a way to solve this problem,\" said John.\n\n\"It's going to be difficult,\" replied Sarah. \"It's a complex issue and we'll have to look at it from all angles to come up with a solution.\"\n\n\"Well, let's start by breaking the problem down into smaller pieces and analyzing each of them separately,\" suggested John.\n\n\"Good idea,\" Sarah agreed. \"We can then look at the individual components and find solutions for each of them.\"
----
-# Instruction:
-Generate code to prompt a user to enter their name
-
-# Response:
-print(\"Please enter your name: \")\nname = input()
----
-# Instruction:
-Name 5 adventure sports
-
-# Response:
-1. Skydiving \n2. Mountain Climbing \n3. Surfing \n4. Bungee Jumping \n5. Heli-skiing
----
-# Instruction:
-Complete the sentence: \"The light of the moon _____________.\"
-
-# Response:
-The light of the moon glimmers in the sky.
----
-# Instruction:
-Translate the phrase \"Life is a journey\" into a foreign language of your choice.
-
-# Response:
-La vida es un viaje (Spanish).
----
-'''
 
     def instruct_format(self, message: str):
         message = message.replace('\n', ' ').strip()
