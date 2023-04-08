@@ -411,10 +411,7 @@ def on_message(user: User, message: str, alt: bool = False) -> str:
         else:
             occurrence[token] += 1
 
-        tokens = [token]
-        if token == 0:
-            tokens = tokenizer.encode('\n\n')
-
+        tokens = tokenizer.encode('\n\n') if token == 0 else [token]
         model_tokens += tokens
         out, model_state = run_rnn(tokens, model_state)
 
@@ -430,16 +427,38 @@ def on_message(user: User, message: str, alt: bool = False) -> str:
             break
 
         # State recovery
-        invalid_str = f"{user.name}{user.interface}"
-        if invalid_str in reply:
-            idx = reply.find(invalid_str)
-            reply = reply[:idx].strip() + '\n\n'
+        def recovery_state(forbidden: str, reply: str, out, model_state, model_tokens):
+            idx = reply.find(forbidden)
+            if idx < 0:
+                return idx, reply, out, model_state, model_tokens
 
+            reply = f" {reply[:idx].strip()}\n\n"
             tokens = tokenizer.encode(reply)
-            model_tokens = model_tokens[:begin] + tokens
-            model_state = load_all_state(user.id, "chat_previous")[1]
+            out, model_state, model_tokens = \
+                load_all_state(user.id, "chat_previous")
+
+            model_tokens += tokens
             out, model_state = run_rnn(tokens, model_state)
 
+            return idx, reply, out, model_state, model_tokens
+
+        idx, reply, out, model_state, model_tokens = recovery_state(
+            f"{user.name}{user.interface}",
+            reply,
+            out,
+            model_state,
+            model_tokens)
+        if idx >= 0:
+            print(f"\nRecovered: {tokenizer.decode(model_tokens[begin:])}")
+            break
+
+        idx, reply, out, model_state, model_tokens = recovery_state(
+            f"{user.bot_name}{user.interface}",
+            reply,
+            out,
+            model_state,
+            model_tokens)
+        if idx >= 0:
             print(f"\nRecovered: {tokenizer.decode(model_tokens[begin:])}")
             break
 
