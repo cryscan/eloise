@@ -223,6 +223,7 @@ def on_reset(user: User) -> str:
     out, model_state, model_tokens = load_all_state("", "chat_intro")
     save_all_state(user.id, "chat", out, model_state, model_tokens)
     save_arguments(user.id, "chat",
+                   mode="Casual",
                    temp=1.0,
                    top_p=0.7,
                    count_penalty=0.2,
@@ -236,6 +237,7 @@ def on_reset_bot(user: User) -> str:
     out, model_state, model_tokens = load_all_state("", "chat_intro_bot")
     save_all_state(user.id, "chat", out, model_state, model_tokens)
     save_arguments(user.id, "chat",
+                   mode="Assistant",
                    temp=0.8,
                    top_p=0.5,
                    count_penalty=0.1,
@@ -374,6 +376,7 @@ def on_message(user: User, message: str, alt: bool = False) -> str:
         out, model_state, model_tokens = load_all_state(user.id, channel)
 
         arguments = load_arguments(user.id, "chat")
+        mode = arguments['mode']
         temp = arguments['temp']
         top_p = arguments['top_p']
         count_penalty = arguments['count_penalty']
@@ -386,6 +389,7 @@ def on_message(user: User, message: str, alt: bool = False) -> str:
                                 count_penalty,
                                 presence_penalty)
         save_arguments(user.id, "chat",
+                       mode=mode,
                        temp=temp,
                        top_p=top_p,
                        count_penalty=count_penalty,
@@ -395,11 +399,13 @@ def on_message(user: User, message: str, alt: bool = False) -> str:
         out, model_state, model_tokens = load_all_state("", intro)
         save_all_state(user.id, "chat", out, model_state, model_tokens)
 
+        mode = "Casual"
         temp = 1.0
         top_p = 0.7
         count_penalty = 0.2
         presence_penalty = 0.2
         save_arguments(user.id, "chat",
+                       mode=mode,
                        temp=temp,
                        top_p=top_p,
                        count_penalty=count_penalty,
@@ -415,7 +421,10 @@ Presence Penalty: {presence_penalty}''')
     print(f"{user.bot_name}{user.interface}", end='')
 
     if not alt:
-        message = user.chat_format(message)
+        if mode == "Assistant":
+            message = user.chat_format(message, 'Bob', 'Alice')
+        else:
+            message = user.chat_format(message)
         tokens = tokenizer.encode(message)
 
         model_tokens += tokens
@@ -436,10 +445,10 @@ Presence Penalty: {presence_penalty}''')
             nl_bias = DONT_OUTPUT
         elif i <= 30:
             nl_bias = (i - 30) * 0.1
-        elif i <= 300:
-            nl_bias = 0
         else:
-            nl_bias = (i - 300) * 0.25
+            nl_bias = 0
+        # else:
+        #     nl_bias = (i - 300) * 0.25
         out[187] += nl_bias
         for n in occurrence:
             out[n] -= presence_penalty + occurrence[n] * count_penalty

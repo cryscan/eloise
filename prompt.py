@@ -84,9 +84,9 @@ The following is a verbose and detailed conversation between an AI assistant cal
 '''
         return intro
 
-    def chat_format(self, message: str):
-        user = self.name
-        bot = self.bot_name
+    def chat_format(self, message: str, user_name = None, bot_name = None):
+        user = user_name or self.name
+        bot = bot_name or self.bot_name
         interface = self.interface
 
         message = message.replace('\n', ' ').strip()

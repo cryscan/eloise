@@ -1,8 +1,10 @@
 data/
 logs/
+render/
 dumps/
 notebooks/
 .vscode/
+.ipynb_checkpoints/
 __pycache__/
 /model/__pycache__/
 passwod.encrypt

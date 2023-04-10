@@ -1,10 +1,14 @@
 from flask import Flask, request
+import os
 import requests
 import chat
 import re
 import datetime
 import logging
 from urllib.parse import quote
+import markdown
+from markdown.extensions import fenced_code
+import imgkit
 
 from prompt import User
 
@@ -19,11 +23,15 @@ logger = logging.getLogger("eloise")
 logger.addHandler(handler)
 logger.setLevel(logging.INFO)
 
+fenced_code_ext = fenced_code.FencedCodeExtension()
+
 
 banned_users = []
 banned_groups = []
 non_chat_groups = [143626394]
 
+
+IMAGE_THRESHOLD = 300
 HELP_MESSAGE = '''Note: <text> means "any text"
 
 ---- MISC UTILITIES  ----
@@ -35,16 +43,14 @@ HELP_MESSAGE = '''Note: <text> means "any text"
 -r, -retry: Retry last generation
 -m, -more: Continue generating more
 '''
-
 MORE_HELP_MESSAGE = '''-qa <text>: Ask questions
 -i, -inst <text>: Follow instructions
 
 ---- CHAT WITH CONTEXT ----
--s, -reset: Reset your chat chain (casual)
--b, -bot: Reset your char chain (AI assistant)
+-s, -reset: Reset your chat chain (Casual)
+-b, -bot: Reset your char chain (AI Assistant)
 -alt: Alternative reply
 '''
-
 CHAT_HELP_MESSAGE = "-c, -chat <text>: Chat with me"
 PRIVATE_HELP_MESSAGE = "<text>: Chat with me"
 
@@ -136,8 +142,17 @@ def post_data():
             logger.info(f"{user.nickname}({user.id}): {prompt}")
             logger.info(reply)
             received_messages.add(message_id)
-            requests.get(
-                f"http://127.0.0.1:5700/send_private_msg?user_id={user.id}&message={quote(reply)}")
+            if len(reply) > IMAGE_THRESHOLD or '\n' in reply:
+                html = markdown.markdown(reply, extensions=[fenced_code_ext])
+                file = f"./render/{user.id} {datetime.datetime.now().isoformat()}.png".replace(
+                    ' ', '-')
+                path = os.path.abspath(file)
+                imgkit.from_string(html, file)
+                requests.get(
+                    f"http://127.0.0.1:5700/send_private_msg?user_id={user.id}&message=[CQ:image,file=file:///{path}]")
+            else:
+                requests.get(
+                    f"http://127.0.0.1:5700/send_private_msg?user_id={user.id}&message={quote(reply)}")
     elif type == 'group':
         group_id = int(json.get('group_id'))
         if group_id in banned_groups:
@@ -154,8 +169,16 @@ def post_data():
             logger.info(f"{group_id}: {user.nickname}({user.id}): {prompt}")
             logger.info(reply)
             received_messages.add(message_id)
-            requests.get(
-                f"http://127.0.0.1:5700/send_group_msg?group_id={group_id}&message=[CQ:at,qq={user.id}]\n{quote(reply)}")
+            if len(reply) > IMAGE_THRESHOLD or '\n' in reply:
+                html = markdown.markdown(reply, extensions=[fenced_code_ext])
+                file = f"render/{user.id} {datetime.datetime.now().isoformat()}.png".replace(' ', '-')
+                path = os.path.abspath(file)
+                imgkit.from_string(html, file)
+                requests.get(
+                    f"http://127.0.0.1:5700/send_group_msg?group_id={group_id}&message=[CQ:at,qq={user.id}][CQ:image,file=file:///{path}]")
+            else:
+                requests.get(
+                    f"http://127.0.0.1:5700/send_group_msg?group_id={group_id}&message=[CQ:at,qq={user.id}]\n{quote(reply)}")
 
     return 'OK'
 
