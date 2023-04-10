@@ -62,7 +62,7 @@ args.strategy = 'cuda fp16i8 *20 -> cuda fp16'
 # args.MODEL_NAME = '/root/autodl-tmp/models/RWKV-4-Pile-14B-20230228-ctx4096-test663'
 # args.MODEL_NAME = '/root/autodl-tmp/models/RWKV-4-Pile-14B-20230313-ctx8192-test1050'
 # args.MODEL_NAME = '/root/autodl-tmp/models/RWKV-4-Pile-14B-Instruct-test5-20230329-ctx4096'
-args.MODEL_NAME = '/root/autodl-tmp/models/RWKV-4-Raven-14B-v8-Eng-20230408-ctx4096'
+args.MODEL_NAME = '/root/autodl-tmp/models/RWKV-4-Raven-14B-v8-EngAndMore-20230408-ctx4096'
 # args.MODEL_NAME = '/root/autodl-tmp/models/RWKV-4-Pile-7B-EngChn-test5-20230330'
 
 args.STATE_DUMP_NAME = './state_14b'
@@ -130,15 +130,14 @@ def load_all_state(uid, channel):
     return all_state[n]['out'], model_state, model_tokens
 
 
-def save_active_mode(uid, channel, mode):
-    n = f'mode_{uid}_{channel}'
-    all_state[n] = mode
+def save_arguments(uid, channel, **kwargs):
+    n = f'arguments_{uid}_{channel}'
+    all_state[n] = kwargs
 
 
-def load_active_mode(uid, channel):
-    n = f'mode_{uid}_{channel}'
-    mode = all_state[n] if n in all_state else ""
-    return mode
+def load_arguments(uid, channel):
+    n = f'arguments_{uid}_{channel}'
+    return all_state[n]
 
 
 def clear_cache():
@@ -180,7 +179,7 @@ def clamp(n, minimum, maximum):
     return max(minimum, min(n, maximum))
 
 
-def read_sampler_params(message: str, temp=1.0, top_p=0.8, count_penalty=0.5, presence_penalty=0.2):
+def read_sampler_params(message: str, temp, top_p, count_penalty, presence_penalty):
     temp_match = re.search("(\-temp\s*=\s*)([^\s]+)\s+", message)
     top_p_match = re.search("(\-top_p\s*=\s*)([^\s]+)\s+", message)
     af_match = re.search("(\-af\s*=\s*)([^\s]+)\s+", message)
@@ -223,6 +222,11 @@ def translate_message(message, from_lang, to_lang):
 def on_reset(user: User) -> str:
     out, model_state, model_tokens = load_all_state("", "chat_intro")
     save_all_state(user.id, "chat", out, model_state, model_tokens)
+    save_arguments(user.id, "chat",
+                   temp=1.0,
+                   top_p=0.7,
+                   count_penalty=0.2,
+                   presence_penalty=0.2)
 
     reply = f"Chat reset for {user.nickname}."
     return reply
@@ -231,6 +235,11 @@ def on_reset(user: User) -> str:
 def on_reset_bot(user: User) -> str:
     out, model_state, model_tokens = load_all_state("", "chat_intro_bot")
     save_all_state(user.id, "chat", out, model_state, model_tokens)
+    save_arguments(user.id, "chat",
+                   temp=0.8,
+                   top_p=0.5,
+                   count_penalty=0.1,
+                   presence_penalty=0.1)
 
     reply = f"Chat reset for {user.nickname}. Bot context loaded."
     return reply
@@ -259,7 +268,7 @@ def on_generate(user: User, message: str, mode: str = "") -> str:
     print(message)
 
     if mode != "retry" and mode != "more":
-        save_active_mode(user.id, "gen", mode)
+        save_arguments(user.id, "gen", mode=mode)
 
     if mode == "inst":
         temp = 0.8
@@ -269,7 +278,7 @@ def on_generate(user: User, message: str, mode: str = "") -> str:
     else:
         temp = 1.0
         top_p = 0.8
-        count_penalty = 0.5
+        count_penalty = 0.2
         presence_penalty = 0.2
 
     message, temp, top_p, count_penalty, presence_penalty = read_sampler_params(
@@ -304,7 +313,7 @@ def on_generate(user: User, message: str, mode: str = "") -> str:
         out, model_state = run_rnn(model_tokens)
         save_all_state(user.id, "gen_0", out, model_state, model_tokens)
 
-    active_mode = load_active_mode(user.id, "gen")
+    active_mode = load_arguments(user.id, "gen")['mode']
     occurrence = {}
     start_time = time.time()
 
@@ -357,19 +366,55 @@ def on_message(user: User, message: str, alt: bool = False) -> str:
         return ""
     print(message)
 
-    message, temp, top_p, count_penalty, presence_penalty = \
-        read_sampler_params(message)
     # lang = langid.classify(message)[0]
     reply: str = ""
 
-    if not alt:
-        try:
-            out, model_state, model_tokens = load_all_state(user.id, "chat")
-        except:
-            intro = "chat_intro"
-            out, model_state, model_tokens = load_all_state("", intro)
-            save_all_state(user.id, "chat", out, model_state, model_tokens)
+    try:
+        channel = "chat_previous" if alt else "chat"
+        out, model_state, model_tokens = load_all_state(user.id, channel)
 
+        arguments = load_arguments(user.id, "chat")
+        temp = arguments['temp']
+        top_p = arguments['top_p']
+        count_penalty = arguments['count_penalty']
+        presence_penalty = arguments['presence_penalty']
+
+        message, temp, top_p, count_penalty, presence_penalty = \
+            read_sampler_params(message,
+                                temp,
+                                top_p,
+                                count_penalty,
+                                presence_penalty)
+        save_arguments(user.id, "chat",
+                       temp=temp,
+                       top_p=top_p,
+                       count_penalty=count_penalty,
+                       presence_penalty=presence_penalty)
+    except:
+        intro = "chat_intro"
+        out, model_state, model_tokens = load_all_state("", intro)
+        save_all_state(user.id, "chat", out, model_state, model_tokens)
+
+        temp = 1.0
+        top_p = 0.7
+        count_penalty = 0.2
+        presence_penalty = 0.2
+        save_arguments(user.id, "chat",
+                       temp=temp,
+                       top_p=top_p,
+                       count_penalty=count_penalty,
+                       presence_penalty=presence_penalty)
+
+        if alt:
+            return reply
+
+    print(f'''Temperature: {temp}
+Top p: {top_p}
+Count Penalty: {count_penalty}
+Presence Penalty: {presence_penalty}''')
+    print(f"{user.bot_name}{user.interface}", end='')
+
+    if not alt:
         message = user.chat_format(message)
         tokens = tokenizer.encode(message)
 
@@ -382,12 +427,6 @@ def on_message(user: User, message: str, alt: bool = False) -> str:
             out,
             model_state,
             model_tokens)
-    else:
-        try:
-            out, model_state, model_tokens = \
-                load_all_state(user.id, "chat_previous")
-        except:
-            return reply
 
     occurrence = {}
     begin = len(model_tokens)

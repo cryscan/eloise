@@ -4,6 +4,7 @@ import chat
 import re
 import datetime
 import logging
+from urllib.parse import quote
 
 from prompt import User
 
@@ -136,7 +137,7 @@ def post_data():
             logger.info(reply)
             received_messages.add(message_id)
             requests.get(
-                f"http://127.0.0.1:5700/send_private_msg?user_id={user.id}&message={reply}")
+                f"http://127.0.0.1:5700/send_private_msg?user_id={user.id}&message={quote(reply)}")
     elif type == 'group':
         group_id = int(json.get('group_id'))
         if group_id in banned_groups:
@@ -154,7 +155,7 @@ def post_data():
             logger.info(reply)
             received_messages.add(message_id)
             requests.get(
-                f"http://127.0.0.1:5700/send_group_msg?group_id={group_id}&message=[CQ:at,qq={user.id}]\n{reply}")
+                f"http://127.0.0.1:5700/send_group_msg?group_id={group_id}&message=[CQ:at,qq={user.id}]\n{quote(reply)}")
 
     return 'OK'
 
