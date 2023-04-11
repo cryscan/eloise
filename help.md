@@ -13,7 +13,7 @@ Model: <model>
 
 ### Chat
 1. `-s, -reset`: Reset your chat chain (Casual)
-2. `-b, -bot`: Reset your char chain (AI Assistant)
+2. `-b, -bot`: Reset your chat chain (AI Assistant)
 3. `-alt`: Alternative reply
 4. <chat>: Chat with me
 
@@ -47,7 +47,7 @@ Model: <model>
 ```
 
 #### Instruct
-* Use `-retry` or `-r` to retry
+* Use `-retry` or `-e` to retry
 * Use `-more` to continue
 
 ```
