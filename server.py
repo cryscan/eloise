@@ -31,27 +31,12 @@ non_chat_groups = []
 IMAGE_THRESHOLD = 300
 IMAGE_WIDTH = 400
 
-HELP_MESSAGE = '''Note: <text> means "any text"
 
----- MISC UTILITIES  ----
--tr <text>: Translate
-
----- FREE GENERATION ----
--h, -help: Show this help
--g, -gen <text>: Generate text
--r, -retry: Retry last generation
--m, -more: Continue generating more
-'''
-MORE_HELP_MESSAGE = '''-qa <text>: Ask questions
--i, -inst <text>: Follow instructions
-
----- CHAT WITH CONTEXT ----
--s, -reset: Reset your chat chain (Casual)
--b, -bot: Reset your char chain (AI Assistant)
--alt: Alternative reply
-'''
-CHAT_HELP_MESSAGE = "-c, -chat <text>: Chat with me"
-PRIVATE_HELP_MESSAGE = "<text>: Chat with me"
+with open("./help.md", 'r') as file:
+    HELP_MESSAGE = file.read()
+CHAT_HELP_COMMAND = "`-c, -chat <text>`"
+PRIVATE_HELP_COMMAND = "`<text>`"
+MODEL_NAME = "Raven v8 14B EngAndMore ctx 4096"
 
 received_messages = set()
 
@@ -60,7 +45,7 @@ def commands(user: User, message, enable_chat=False, is_private=False):
     help_match = re.match("\-h(elp)?", message)
 
     translate_match = re.match("\-tr", message)
-    retry_match = re.match("\-(retry|r)", message)
+    retry_match = re.match("\-(retry|e)", message)
     more_match = re.match("\-m(ore)?", message)
     gen_match = re.match("\-g(en)?\s+", message)
     qa_match = re.match("\-qa\s+", message)
@@ -71,13 +56,11 @@ def commands(user: User, message, enable_chat=False, is_private=False):
     alt_match = re.match("\-alt", message)
     chat_match = re.match("\-c(hat)?\s+", message)
 
-    help = HELP_MESSAGE
-    if enable_chat:
-        help += MORE_HELP_MESSAGE
-    if enable_chat and not is_private:
-        help += CHAT_HELP_MESSAGE
+    help = HELP_MESSAGE.replace('<model>', MODEL_NAME)
     if is_private:
-        help += PRIVATE_HELP_MESSAGE
+        help = help.replace('<chat>', PRIVATE_HELP_COMMAND)
+    else:
+        help = help.replace('<chat>', CHAT_HELP_COMMAND)
 
     prompt = message
     reply = ""
@@ -141,8 +124,12 @@ def post_data():
             logger.info(f"{user.nickname}({user.id}): {prompt}")
             logger.info(reply)
             received_messages.add(message_id)
-            if len(reply) > IMAGE_THRESHOLD or '\n' in reply:
-                options = {'width': IMAGE_WIDTH, 'disable-smart-width': ''}
+            if len(reply) > IMAGE_THRESHOLD or reply.count('\n') > 2:
+                options = {
+                    'width': IMAGE_WIDTH, 
+                    'disable-smart-width': '',
+                    'font-family': 'SimSun',
+                }
                 html = markdown.markdown(
                     reply, extensions=['extra', 'nl2br'], options=options)
 
@@ -172,8 +159,12 @@ def post_data():
             logger.info(f"{group_id}: {user.nickname}({user.id}): {prompt}")
             logger.info(reply)
             received_messages.add(message_id)
-            if len(reply) > IMAGE_THRESHOLD or '\n' in reply:
-                options = {'width': IMAGE_WIDTH, 'disable-smart-width': ''}
+            if len(reply) > IMAGE_THRESHOLD or reply.count('\n') > 2:
+                options = {
+                    'width': IMAGE_WIDTH, 
+                    'disable-smart-width': '',
+                    'font-family': 'SimSun',
+                }
                 html = markdown.markdown(
                     reply, extensions=['extra', 'nl2br'], options=options)
 

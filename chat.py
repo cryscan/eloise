@@ -475,7 +475,7 @@ Presence Penalty: {presence_penalty}''')
             break
 
         # State recovery
-        def recovery_state(forbidden: str, reply: str, out, model_state, model_tokens):
+        def recover_state(forbidden: str, reply: str, out, model_state, model_tokens):
             idx = reply.find(forbidden)
             if idx < 0:
                 return idx, reply, out, model_state, model_tokens
@@ -490,7 +490,7 @@ Presence Penalty: {presence_penalty}''')
 
             return idx, reply, out, model_state, model_tokens
 
-        idx, reply, out, model_state, model_tokens = recovery_state(
+        idx, reply, out, model_state, model_tokens = recover_state(
             f"{user.name}{user.interface}",
             reply,
             out,
@@ -500,7 +500,7 @@ Presence Penalty: {presence_penalty}''')
             print(f"\nRecovered: {tokenizer.decode(model_tokens[begin:])}")
             break
 
-        idx, reply, out, model_state, model_tokens = recovery_state(
+        idx, reply, out, model_state, model_tokens = recover_state(
             f"{user.bot_name}{user.interface}",
             reply,
             out,
