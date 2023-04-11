@@ -7,7 +7,6 @@ import datetime
 import logging
 from urllib.parse import quote
 import markdown
-from markdown.extensions import fenced_code
 import imgkit
 
 from prompt import User
@@ -23,15 +22,15 @@ logger = logging.getLogger("eloise")
 logger.addHandler(handler)
 logger.setLevel(logging.INFO)
 
-fenced_code_ext = fenced_code.FencedCodeExtension()
-
 
 banned_users = []
 banned_groups = []
-non_chat_groups = [143626394]
+non_chat_groups = []
 
 
 IMAGE_THRESHOLD = 300
+IMAGE_WIDTH = 400
+
 HELP_MESSAGE = '''Note: <text> means "any text"
 
 ---- MISC UTILITIES  ----
@@ -143,9 +142,13 @@ def post_data():
             logger.info(reply)
             received_messages.add(message_id)
             if len(reply) > IMAGE_THRESHOLD or '\n' in reply:
-                html = markdown.markdown(reply, extensions=[fenced_code_ext])
-                file = f"./render/{user.id} {datetime.datetime.now().isoformat()}.png".replace(
-                    ' ', '-')
+                options = {'width': IMAGE_WIDTH, 'disable-smart-width': ''}
+                html = markdown.markdown(
+                    reply, extensions=['extra', 'nl2br'], options=options)
+
+                file = f"./images/{user.id} {datetime.datetime.now().isoformat()}.png"
+                file = file.replace(' ', '-')
+
                 path = os.path.abspath(file)
                 imgkit.from_string(html, file)
                 requests.get(
@@ -170,8 +173,13 @@ def post_data():
             logger.info(reply)
             received_messages.add(message_id)
             if len(reply) > IMAGE_THRESHOLD or '\n' in reply:
-                html = markdown.markdown(reply, extensions=[fenced_code_ext])
-                file = f"render/{user.id} {datetime.datetime.now().isoformat()}.png".replace(' ', '-')
+                options = {'width': IMAGE_WIDTH, 'disable-smart-width': ''}
+                html = markdown.markdown(
+                    reply, extensions=['extra', 'nl2br'], options=options)
+
+                file = f"./images/{user.id} {datetime.datetime.now().isoformat()}.png"
+                file = file.replace(' ', '-')
+
                 path = os.path.abspath(file)
                 imgkit.from_string(html, file)
                 requests.get(
