@@ -124,7 +124,7 @@ def post_data():
             logger.info(f"{user.nickname}({user.id}): {prompt}")
             logger.info(reply)
             received_messages.add(message_id)
-            if len(reply) > IMAGE_THRESHOLD or reply.count('\n') > 2:
+            if reply.count('\n') > 2:
                 options = {
                     'width': IMAGE_WIDTH, 
                     'disable-smart-width': '',
@@ -159,7 +159,7 @@ def post_data():
             logger.info(f"{group_id}: {user.nickname}({user.id}): {prompt}")
             logger.info(reply)
             received_messages.add(message_id)
-            if len(reply) > IMAGE_THRESHOLD or reply.count('\n') > 2:
+            if reply.count('\n') > 2:
                 options = {
                     'width': IMAGE_WIDTH, 
                     'disable-smart-width': '',

@@ -372,7 +372,7 @@ def on_message(user: User, message: str, alt: bool = False) -> str:
     reply: str = ""
 
     try:
-        channel = "chat_previous" if alt else "chat"
+        channel = "chat_pre" if alt else "chat"
         out, model_state, model_tokens = load_all_state(user.id, channel)
 
         arguments = load_arguments(user.id, "chat")
@@ -432,7 +432,7 @@ Presence Penalty: {presence_penalty}''')
 
         save_all_state(
             user.id,
-            "chat_previous",
+            "chat_pre",
             out,
             model_state,
             model_tokens)
@@ -483,7 +483,7 @@ Presence Penalty: {presence_penalty}''')
             reply = f" {reply[:idx].strip()}\n\n"
             tokens = tokenizer.encode(reply)
             out, model_state, model_tokens = \
-                load_all_state(user.id, "chat_previous")
+                load_all_state(user.id, "chat_pre")
 
             model_tokens += tokens
             out, model_state = run_rnn(tokens, model_state)
