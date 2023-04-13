@@ -43,6 +43,7 @@ received_messages = set()
 
 def commands(user: User, message, enable_chat=False, is_private=False):
     help_match = re.match("\-h(elp)?", message)
+    params_match = re.match("\-p(arams)?", message)
 
     translate_match = re.match("\-tr", message)
     retry_match = re.match("\-(retry|e)", message)
@@ -68,6 +69,9 @@ def commands(user: User, message, enable_chat=False, is_private=False):
 
     if help_match:
         reply = help
+    elif params_match:
+        prompt = message[params_match.end():]
+        reply = chat.on_show_params(user, prompt)
     elif translate_match:
         prompt = message[translate_match.end():]
         reply = chat.on_translate(user, prompt)

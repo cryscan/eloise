@@ -12,7 +12,7 @@ import translate
 import langid
 
 from model.model_run import RWKV
-from model.utils import TOKENIZER
+from model.utils import TOKENIZER, SAMPLER
 
 import prompt
 from prompt import User
@@ -45,6 +45,9 @@ CHUNK_LEN = 256
 
 MAX_GENERATE_LEN = 250
 MAX_REPLY_LEN = 1024
+
+CHAT_SAMPLER = SAMPLER("typical", 1.0, 0.8, 0.9, 0.2, 0.2)
+INSTRUCT_SAMPLER = SAMPLER("nucleus", 1.0, 0.2, 0.2, 0.1, 0.1)
 
 args = types.SimpleNamespace()
 
@@ -130,13 +133,13 @@ def load_all_state(uid, channel):
     return all_state[n]['out'], model_state, model_tokens
 
 
-def save_arguments(uid, channel, **kwargs):
-    n = f'arguments_{uid}_{channel}'
+def save_params(uid, channel, **kwargs):
+    n = f'params_{uid}_{channel}'
     all_state[n] = kwargs
 
 
-def load_arguments(uid, channel):
-    n = f'arguments_{uid}_{channel}'
+def load_params(uid, channel):
+    n = f'params_{uid}_{channel}'
     return all_state[n]
 
 
@@ -179,37 +182,6 @@ def clamp(n, minimum, maximum):
     return max(minimum, min(n, maximum))
 
 
-def read_sampler_params(message: str, temp, top_p, tau, count_penalty, presence_penalty):
-    temp_match = re.search("(\-temp\s*=\s*)(\-?\d+(.\d*)?)\s*", message)
-    top_p_match = re.search("(\-top_p\s*=\s*)(\-?\d+(.\d*)?)\s*", message)
-    tau_match = re.search("(\-tau\s*=\s*)(\-?\d+(.\d*)?)\s*", message)
-    af_match = re.search("(\-af\s*=\s*)(\-?\d+(.\d*)?)\s*", message)
-    ap_match = re.search("(\-ap\s*=\s*)(\-?\d+(.\d*)?)\s*", message)
-
-    if temp_match:
-        temp = float(temp_match.group(2))
-        message = message.replace(temp_match.group(0), "")
-    if top_p_match:
-        top_p = float(top_p_match.group(2))
-        message = message.replace(top_p_match.group(0), "")
-    if tau_match:
-        tau = float(tau_match.group(2))
-        message = message.replace(tau_match.group(0), "")
-    if af_match:
-        count_penalty = float(af_match.group(2))
-        message = message.replace(af_match.group(0), "")
-    if ap_match:
-        presence_penalty = float(ap_match.group(2))
-        message = message.replace(ap_match.group(0), "")
-
-    temp = clamp(temp, 0.2, 5)
-    top_p = max(0, top_p)
-    tau = max(0, tau)
-    count_penalty = clamp(count_penalty, 0.0, 1.0)
-    presence_penalty = clamp(presence_penalty, 0.0, 1.0)
-    return message, temp, top_p, tau, count_penalty, presence_penalty
-
-
 def translate_message(message, from_lang, to_lang):
     translator = translate.Translator(to_lang, from_lang)
     translated = translator.translate(message)
@@ -223,13 +195,7 @@ def translate_message(message, from_lang, to_lang):
 def on_reset(user: User) -> str:
     out, model_state, model_tokens = load_all_state("", "chat_intro")
     save_all_state(user.id, "chat", out, model_state, model_tokens)
-    save_arguments(user.id, "chat",
-                   mode="Casual",
-                   temp=1.0,
-                   top_p=0.7,
-                   tau=0.95,
-                   count_penalty=0.2,
-                   presence_penalty=0.2)
+    save_params(user.id, "chat", mode="chat", sampler=CHAT_SAMPLER)
 
     reply = f"Chat reset for {user.nickname}."
     return reply
@@ -238,16 +204,25 @@ def on_reset(user: User) -> str:
 def on_reset_bot(user: User) -> str:
     out, model_state, model_tokens = load_all_state("", "chat_intro_bot")
     save_all_state(user.id, "chat", out, model_state, model_tokens)
-    save_arguments(user.id, "chat",
-                   mode="Assistant",
-                   temp=0.8,
-                   top_p=0.5,
-                   tau=0.2,
-                   count_penalty=0.1,
-                   presence_penalty=0.1)
+    save_params(user.id, "chat", mode="inst", sampler=INSTRUCT_SAMPLER)
 
     reply = f"Chat reset for {user.nickname}. Bot context loaded."
     return reply
+
+
+def on_show_params(user: User, message: str) -> str:
+    try:
+        params = load_params(user.id, "chat")
+        mode = params['mode']
+        sampler: SAMPLER = params['sampler']
+        message = sampler.parse(message)
+        save_params(user.id, "chat", mode=mode, sampler=sampler)
+    except:
+        mode = "chat"
+        sampler = CHAT_SAMPLER
+        message = sampler.parse(message)
+        save_params(user.id, "chat", mode=mode, sampler=sampler)
+    return str(sampler)
 
 
 def on_translate(user: User, message: str) -> str:
@@ -273,23 +248,11 @@ def on_generate(user: User, message: str, mode: str = "") -> str:
     print(message)
 
     if mode != "retry" and mode != "more":
-        save_arguments(user.id, "gen", mode=mode)
+        save_params(user.id, "gen", mode=mode)
 
-    if mode == "inst":
-        temp = 0.8
-        top_p = 0.5
-        tau = 0.2
-        count_penalty = 0.1
-        presence_penalty = 0.1
-    else:
-        temp = 1.0
-        top_p = 0.8
-        tau = 0.95
-        count_penalty = 0.2
-        presence_penalty = 0.2
-
-    message, temp, top_p, tau, count_penalty, presence_penalty = read_sampler_params(
-        message, temp, top_p, tau, count_penalty, presence_penalty)
+    sampler = INSTRUCT_SAMPLER if mode == 'inst' else CHAT_SAMPLER
+    message = sampler.parse(message)
+    print(str(sampler))
 
     reply: str = ""
 
@@ -320,7 +283,7 @@ def on_generate(user: User, message: str, mode: str = "") -> str:
         out, model_state = run_rnn(model_tokens)
         save_all_state(user.id, "gen_0", out, model_state, model_tokens)
 
-    active_mode = load_arguments(user.id, "gen")['mode']
+    active_mode = load_params(user.id, "gen")['mode']
     occurrence = {}
     start_time = time.time()
 
@@ -330,10 +293,10 @@ def on_generate(user: User, message: str, mode: str = "") -> str:
         if active_mode != "qa" and active_mode != "inst":
             out[0] = DONT_OUTPUT
         for n in occurrence:
-            out[n] -= presence_penalty + occurrence[n] * count_penalty
+            out[n] -= sampler.presence_penalty + \
+                occurrence[n] * sampler.count_penalty
 
-        token = tokenizer.sample_logits_typical(
-            out, temp=temp, top_p=top_p, tau=tau)
+        token = sampler.sample(out)
         if token not in occurrence:
             occurrence[token] = 1
         else:
@@ -381,62 +344,30 @@ def on_message(user: User, message: str, alt: bool = False) -> str:
         channel = "chat_pre" if alt else "chat"
         out, model_state, model_tokens = load_all_state(user.id, channel)
 
-        arguments = load_arguments(user.id, "chat")
-        mode = arguments['mode']
-        temp = arguments['temp']
-        top_p = arguments['top_p']
-        tau = arguments['tau']
-        count_penalty = arguments['count_penalty']
-        presence_penalty = arguments['presence_penalty']
-
-        message, temp, top_p, tau, count_penalty, presence_penalty = \
-            read_sampler_params(message,
-                                temp,
-                                top_p,
-                                tau,
-                                count_penalty,
-                                presence_penalty)
-        save_arguments(user.id, "chat",
-                       mode=mode,
-                       temp=temp,
-                       top_p=top_p,
-                       tau=tau,
-                       count_penalty=count_penalty,
-                       presence_penalty=presence_penalty)
+        params = load_params(user.id, "chat")
+        mode = params['mode']
+        sampler: SAMPLER = params['sampler']
+        message = sampler.parse(message)
+        save_params(user.id, "chat", mode=mode, sampler=sampler)
     except:
         intro = "chat_intro"
         out, model_state, model_tokens = load_all_state("", intro)
         save_all_state(user.id, "chat", out, model_state, model_tokens)
 
-        mode = "Casual"
-        temp = 1.0
-        top_p = 0.7
-        tau = 0.95
-        count_penalty = 0.2
-        presence_penalty = 0.2
-        save_arguments(user.id, "chat",
-                       mode=mode,
-                       temp=temp,
-                       top_p=top_p,
-                       tau=tau,
-                       count_penalty=count_penalty,
-                       presence_penalty=presence_penalty)
+        mode = "chat"
+        sampler = CHAT_SAMPLER
+        message = sampler.parse(message)
+        save_params(user.id, "chat", mode=mode, sampler=sampler)
 
         if alt:
             return reply
 
-    print(f'''Temperature: {temp}
-Top p: {top_p}
-Tau: {tau}
-Count Penalty: {count_penalty}
-Presence Penalty: {presence_penalty}''')
+    print(str(sampler))
     print(f"{user.bot_name}{user.interface}", end='')
 
     if not alt:
-        if mode == "Assistant":
-            message = user.chat_format(message, 'Bob', 'Alice')
-        else:
-            message = user.chat_format(message)
+        message = user.chat_format(message, 'Bob', 'Alice') \
+            if mode == 'inst' else user.chat_format(message)
         tokens = tokenizer.encode(message)
 
         model_tokens += tokens
@@ -463,10 +394,10 @@ Presence Penalty: {presence_penalty}''')
         #     nl_bias = (i - 300) * 0.25
         out[187] += nl_bias
         for n in occurrence:
-            out[n] -= presence_penalty + occurrence[n] * count_penalty
+            out[n] -= sampler.presence_penalty + \
+                occurrence[n] * sampler.count_penalty
 
-        token = tokenizer.sample_logits_typical(
-            out, temp=temp, top_p=top_p, tau=tau)
+        token = sampler.sample(out)
         if token not in occurrence:
             occurrence[token] = 1
         else:
