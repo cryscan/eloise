@@ -28,7 +28,7 @@ banned_groups = []
 non_chat_groups = []
 
 
-IMAGE_THRESHOLD = 300
+IMAGE_THRESHOLD = 1024
 IMAGE_WIDTH = 400
 
 
@@ -36,7 +36,7 @@ with open("./help.md", 'r') as file:
     HELP_MESSAGE = file.read()
 CHAT_HELP_COMMAND = "`-c, -chat <text>`"
 PRIVATE_HELP_COMMAND = "`<text>`"
-MODEL_NAME = "Raven v8 14B EngAndMore ctx 4096"
+MODEL_NAME = "Raven v9 14B Eng ctx 8192"
 
 received_messages = set()
 
@@ -124,14 +124,14 @@ def post_data():
             logger.info(f"{user.nickname}({user.id}): {prompt}")
             logger.info(reply)
             received_messages.add(message_id)
-            if reply.count('\n') > 2:
+            if len(reply) > IMAGE_THRESHOLD or reply.count('\n') > 2:
                 options = {
-                    'width': IMAGE_WIDTH, 
+                    'width': IMAGE_WIDTH,
                     'disable-smart-width': '',
                     'font-family': 'SimSun',
                 }
                 html = markdown.markdown(
-                    reply, extensions=['extra', 'nl2br'], options=options)
+                    reply, extensions=['extra', 'nl2br', 'sane_lists'], options=options)
 
                 file = f"./images/{user.id} {datetime.datetime.now().isoformat()}.png"
                 file = file.replace(' ', '-')
@@ -159,14 +159,14 @@ def post_data():
             logger.info(f"{group_id}: {user.nickname}({user.id}): {prompt}")
             logger.info(reply)
             received_messages.add(message_id)
-            if reply.count('\n') > 2:
+            if len(reply) > IMAGE_THRESHOLD or reply.count('\n') > 2:
                 options = {
-                    'width': IMAGE_WIDTH, 
+                    'width': IMAGE_WIDTH,
                     'disable-smart-width': '',
                     'font-family': 'SimSun',
                 }
                 html = markdown.markdown(
-                    reply, extensions=['extra', 'nl2br'], options=options)
+                    reply, extensions=['extra', 'nl2br', 'sane_lists'], options=options)
 
                 file = f"./images/{user.id} {datetime.datetime.now().isoformat()}.png"
                 file = file.replace(' ', '-')

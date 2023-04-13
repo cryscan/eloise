@@ -40,8 +40,8 @@ tokenizer = TOKENIZER("20B_tokenizer.json")
 
 DONT_OUTPUT = -float('inf')
 
-MAX_MESSAGE_LEN = 4096
-CHUNK_LEN = 128
+MAX_MESSAGE_LEN = 2048
+CHUNK_LEN = 256
 
 MAX_GENERATE_LEN = 250
 MAX_REPLY_LEN = 1024
@@ -55,14 +55,14 @@ args = types.SimpleNamespace()
 # args.strategy = 'cuda fp16 *0+ -> cpu fp32 *1'
 # args.strategy = 'cuda fp16 *32 -> cpu fp32'
 # args.strategy = 'cuda fp16 *20 -> cpu fp32'
-args.strategy = 'cuda fp16i8 *20 -> cuda fp16'
+args.strategy = 'cuda fp16i8 *18 -> cuda fp16'
 
 # args.MODEL_NAME = '/root/autodl-tmp/models/RWKV-4-Pile-7B-20221115-8047'
 # args.MODEL_NAME = '/root/autodl-tmp/models/RWKV-4-Pile-14B-20230213-8019'
 # args.MODEL_NAME = '/root/autodl-tmp/models/RWKV-4-Pile-14B-20230228-ctx4096-test663'
 # args.MODEL_NAME = '/root/autodl-tmp/models/RWKV-4-Pile-14B-20230313-ctx8192-test1050'
 # args.MODEL_NAME = '/root/autodl-tmp/models/RWKV-4-Pile-14B-Instruct-test5-20230329-ctx4096'
-args.MODEL_NAME = '/root/autodl-tmp/models/RWKV-4-Raven-14B-v8-EngAndMore-20230408-ctx4096'
+args.MODEL_NAME = '/root/autodl-tmp/models/RWKV-4-Raven-14B-v9-Eng99%-Other1%-20230412-ctx8192'
 # args.MODEL_NAME = '/root/autodl-tmp/models/RWKV-4-Pile-7B-EngChn-test5-20230330'
 
 args.STATE_DUMP_NAME = './state_14b'
@@ -179,34 +179,35 @@ def clamp(n, minimum, maximum):
     return max(minimum, min(n, maximum))
 
 
-def read_sampler_params(message: str, temp, top_p, count_penalty, presence_penalty):
-    temp_match = re.search("(\-temp\s*=\s*)([^\s]+)\s+", message)
-    top_p_match = re.search("(\-top_p\s*=\s*)([^\s]+)\s+", message)
-    af_match = re.search("(\-af\s*=\s*)([^\s]+)\s+", message)
-    ap_match = re.search("(\-ap\s*=\s*)([^\s]+)\s+", message)
+def read_sampler_params(message: str, temp, top_p, tau, count_penalty, presence_penalty):
+    temp_match = re.search("(\-temp\s*=\s*)(\-?\d+(.\d*)?)\s*", message)
+    top_p_match = re.search("(\-top_p\s*=\s*)(\-?\d+(.\d*)?)\s*", message)
+    tau_match = re.search("(\-tau\s*=\s*)(\-?\d+(.\d*)?)\s*", message)
+    af_match = re.search("(\-af\s*=\s*)(\-?\d+(.\d*)?)\s*", message)
+    ap_match = re.search("(\-ap\s*=\s*)(\-?\d+(.\d*)?)\s*", message)
 
     if temp_match:
         temp = float(temp_match.group(2))
         message = message.replace(temp_match.group(0), "")
-        print(f"temp: {temp}")
     if top_p_match:
         top_p = float(top_p_match.group(2))
         message = message.replace(top_p_match.group(0), "")
-        print(f"top_p: {top_p}")
+    if tau_match:
+        tau = float(tau_match.group(2))
+        message = message.replace(tau_match.group(0), "")
     if af_match:
         count_penalty = float(af_match.group(2))
         message = message.replace(af_match.group(0), "")
-        print(f"count_penalty: {count_penalty}")
     if ap_match:
         presence_penalty = float(ap_match.group(2))
         message = message.replace(ap_match.group(0), "")
-        print(f"presence_penalty: {presence_penalty}")
 
     temp = clamp(temp, 0.2, 5)
     top_p = max(0, top_p)
+    tau = max(0, tau)
     count_penalty = clamp(count_penalty, 0.0, 1.0)
     presence_penalty = clamp(presence_penalty, 0.0, 1.0)
-    return message, temp, top_p, count_penalty, presence_penalty
+    return message, temp, top_p, tau, count_penalty, presence_penalty
 
 
 def translate_message(message, from_lang, to_lang):
@@ -226,6 +227,7 @@ def on_reset(user: User) -> str:
                    mode="Casual",
                    temp=1.0,
                    top_p=0.7,
+                   tau=0.95,
                    count_penalty=0.2,
                    presence_penalty=0.2)
 
@@ -240,6 +242,7 @@ def on_reset_bot(user: User) -> str:
                    mode="Assistant",
                    temp=0.8,
                    top_p=0.5,
+                   tau=0.2,
                    count_penalty=0.1,
                    presence_penalty=0.1)
 
@@ -275,16 +278,18 @@ def on_generate(user: User, message: str, mode: str = "") -> str:
     if mode == "inst":
         temp = 0.8
         top_p = 0.5
+        tau = 0.2
         count_penalty = 0.1
         presence_penalty = 0.1
     else:
         temp = 1.0
         top_p = 0.8
+        tau = 0.95
         count_penalty = 0.2
         presence_penalty = 0.2
 
-    message, temp, top_p, count_penalty, presence_penalty = read_sampler_params(
-        message, temp, top_p, count_penalty, presence_penalty)
+    message, temp, top_p, tau, count_penalty, presence_penalty = read_sampler_params(
+        message, temp, top_p, tau, count_penalty, presence_penalty)
 
     reply: str = ""
 
@@ -327,7 +332,8 @@ def on_generate(user: User, message: str, mode: str = "") -> str:
         for n in occurrence:
             out[n] -= presence_penalty + occurrence[n] * count_penalty
 
-        token = tokenizer.sample_logits(out, temp, top_p)
+        token = tokenizer.sample_logits_typical(
+            out, temp=temp, top_p=top_p, tau=tau)
         if token not in occurrence:
             occurrence[token] = 1
         else:
@@ -379,19 +385,22 @@ def on_message(user: User, message: str, alt: bool = False) -> str:
         mode = arguments['mode']
         temp = arguments['temp']
         top_p = arguments['top_p']
+        tau = arguments['tau']
         count_penalty = arguments['count_penalty']
         presence_penalty = arguments['presence_penalty']
 
-        message, temp, top_p, count_penalty, presence_penalty = \
+        message, temp, top_p, tau, count_penalty, presence_penalty = \
             read_sampler_params(message,
                                 temp,
                                 top_p,
+                                tau,
                                 count_penalty,
                                 presence_penalty)
         save_arguments(user.id, "chat",
                        mode=mode,
                        temp=temp,
                        top_p=top_p,
+                       tau=tau,
                        count_penalty=count_penalty,
                        presence_penalty=presence_penalty)
     except:
@@ -402,12 +411,14 @@ def on_message(user: User, message: str, alt: bool = False) -> str:
         mode = "Casual"
         temp = 1.0
         top_p = 0.7
+        tau = 0.95
         count_penalty = 0.2
         presence_penalty = 0.2
         save_arguments(user.id, "chat",
                        mode=mode,
                        temp=temp,
                        top_p=top_p,
+                       tau=tau,
                        count_penalty=count_penalty,
                        presence_penalty=presence_penalty)
 
@@ -416,6 +427,7 @@ def on_message(user: User, message: str, alt: bool = False) -> str:
 
     print(f'''Temperature: {temp}
 Top p: {top_p}
+Tau: {tau}
 Count Penalty: {count_penalty}
 Presence Penalty: {presence_penalty}''')
     print(f"{user.bot_name}{user.interface}", end='')
@@ -453,7 +465,8 @@ Presence Penalty: {presence_penalty}''')
         for n in occurrence:
             out[n] -= presence_penalty + occurrence[n] * count_penalty
 
-        token = tokenizer.sample_logits(out, temp, top_p)
+        token = tokenizer.sample_logits_typical(
+            out, temp=temp, top_p=top_p, tau=tau)
         if token not in occurrence:
             occurrence[token] = 1
         else:

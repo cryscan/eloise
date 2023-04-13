@@ -22,6 +22,7 @@ Model: <model>
 | ----------------- | ---------------------------------- | ------------------- | ------------------------------ |
 | `-temp=<number>`  | Higher temperature → more verbose  | 1                   | 0.8                            |
 | `-top_p=<number>` | Lower top p → more accurate answer | 0.7                 | 0.5                            |
+| `-tau=<number>`   | Lower tau → more accurate answer   | 0.95                | 0.2                            |
 | `-af=<number>`    | Count penalty, avoids repeating    | 0.2                 | 0.2                            |
 | `-ap=<number>`    | Presence penalty                   | 0.2                 | 0.1                            |
 
