@@ -46,8 +46,8 @@ CHUNK_LEN = 256
 MAX_GENERATE_LEN = 250
 MAX_REPLY_LEN = 1024
 
-CHAT_SAMPLER = SAMPLER("typical", 1.0, 0.8, 0.2, 0.2, 0.2)
-INSTRUCT_SAMPLER = SAMPLER("nucleus", 1.0, 0.2, 0.95, 0.1, 0.1)
+CHAT_SAMPLER = SAMPLER("typical", 1.0, 0.8, 0.2, 0.1, 0.1)
+INSTRUCT_SAMPLER = SAMPLER("nucleus", 0.8, 0.5, 0.95, 0.1, 0.1)
 
 args = types.SimpleNamespace()
 

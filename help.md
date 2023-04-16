@@ -22,12 +22,12 @@ Model: <model>
 | Param             | Description                        | Default (Chat Mode) | Default (Bot/Instruction Mode) |
 | ----------------- | ---------------------------------- | ------------------- | ------------------------------ |
 | `-nucleus`        | Switch to nucleus sampling         |                     | Yes                            |
-| `-typical`        | Switch to typical sampling         | Yes                 |
-| `-temp=<number>`  | Higher temperature → more verbose  | 1                   | 1                              |
+| `-typical`        | Switch to typical sampling         | Yes                 |                                |
+| `-temp=<number>`  | Higher temperature → more verbose  | 1                   | 0.8                            |
 | `-top_p=<number>` | Lower top p → more accurate answer | 0.8                 | 0.5                            |
 | `-tau=<number>`   | Lower tau → more accurate answer   | 0.2                 | 0.95                           |
-| `-af=<number>`    | Count penalty, avoids repeating    | 0.2                 | 0.2                            |
-| `-ap=<number>`    | Presence penalty                   | 0.2                 | 0.1                            |
+| `-af=<number>`    | Count penalty, avoids repeating    | 0.1                 | 0.1                            |
+| `-ap=<number>`    | Presence penalty                   | 0.1                 | 0.1                            |
 
 ### Examples
 #### Chat
