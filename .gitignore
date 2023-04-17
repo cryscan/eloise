@@ -7,6 +7,6 @@ notebooks/
 .ipynb_checkpoints/
 __pycache__/
 /model/__pycache__/
-passwod.encrypt
+password.encrypt
 session.token
 device.json
