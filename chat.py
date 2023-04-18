@@ -219,7 +219,7 @@ def on_show_params(user: User, message: str) -> str:
         save_params(user.id, "chat", mode=mode, sampler=sampler)
     except:
         mode = "chat"
-        sampler = CHAT_SAMPLER
+        sampler = copy.deepcopy(CHAT_SAMPLER)
         message = sampler.parse(message)
         save_params(user.id, "chat", mode=mode, sampler=sampler)
     return str(sampler)
@@ -250,7 +250,7 @@ def on_generate(user: User, message: str, mode: str = "") -> str:
     if mode != "retry" and mode != "more":
         save_params(user.id, "gen", mode=mode)
 
-    sampler = INSTRUCT_SAMPLER if mode == 'inst' else CHAT_SAMPLER
+    sampler = copy.deepcopy(INSTRUCT_SAMPLER) if mode == 'inst' else copy.deepcopy(CHAT_SAMPLER)
     message = sampler.parse(message)
     print(str(sampler))
 
@@ -355,7 +355,7 @@ def on_message(user: User, message: str, alt: bool = False) -> str:
         save_all_state(user.id, "chat", out, model_state, model_tokens)
 
         mode = "chat"
-        sampler = CHAT_SAMPLER
+        sampler = copy.deepcopy(CHAT_SAMPLER)
         message = sampler.parse(message)
         save_params(user.id, "chat", mode=mode, sampler=sampler)
 

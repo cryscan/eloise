@@ -81,7 +81,7 @@ class SAMPLER():
 
     def parse(self, input: str) -> str:
         nucleus_match = re.search("\-nucleus\s+", input)
-        typical_match = re.search("\-typical", input)
+        typical_match = re.search("\-typical\s+", input)
         temp_match = re.search("(\-temp\s*=\s*)(\-?\d+(.\d*)?)\s*", input)
         top_p_match = re.search("(\-top_p\s*=\s*)(\-?\d+(.\d*)?)\s*", input)
         tau_match = re.search("(\-tau\s*=\s*)(\-?\d+(.\d*)?)\s*", input)
