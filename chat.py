@@ -1,6 +1,7 @@
 import os
 import copy
 import sys
+from enum import Enum
 import time
 import types
 import gc
@@ -79,6 +80,19 @@ args.my_pos_emb = 0
 args.n_layer = 40   # 32
 args.n_embd = 5120  # 4096
 args.ctx_len = 4096
+
+
+class GenerateMode(Enum):
+    GENERATE = 0
+    INSTRUCT = 1
+    QUESTION = 2
+    RETRY = 3
+    MORE = 4
+
+
+class ChatMode(Enum):
+    CASUAL = 0
+    ASSISTANT = 1
 
 
 # Load Model
@@ -195,7 +209,7 @@ def translate_message(message, from_lang, to_lang):
 def on_reset(user: User) -> str:
     out, model_state, model_tokens = load_all_state("", "chat_intro")
     save_all_state(user.id, "chat", out, model_state, model_tokens)
-    save_params(user.id, "chat", mode="chat", sampler=CHAT_SAMPLER)
+    save_params(user.id, "chat", mode=ChatMode.CASUAL, sampler=CHAT_SAMPLER)
 
     reply = f"Chat reset for {user.nickname}."
     return reply
@@ -204,7 +218,8 @@ def on_reset(user: User) -> str:
 def on_reset_bot(user: User) -> str:
     out, model_state, model_tokens = load_all_state("", "chat_intro_bot")
     save_all_state(user.id, "chat", out, model_state, model_tokens)
-    save_params(user.id, "chat", mode="inst", sampler=INSTRUCT_SAMPLER)
+    save_params(user.id, "chat", mode=ChatMode.ASSISTANT,
+                sampler=INSTRUCT_SAMPLER)
 
     reply = f"Chat reset for {user.nickname}. Bot context loaded."
     return reply
@@ -218,7 +233,7 @@ def on_show_params(user: User, message: str) -> str:
         message = sampler.parse(message)
         save_params(user.id, "chat", mode=mode, sampler=sampler)
     except:
-        mode = "chat"
+        mode = ChatMode.CASUAL
         sampler = copy.deepcopy(CHAT_SAMPLER)
         message = sampler.parse(message)
         save_params(user.id, "chat", mode=mode, sampler=sampler)
@@ -239,7 +254,7 @@ def on_translate(user: User, message: str) -> str:
     return reply
 
 
-def on_generate(user: User, message: str, mode: str = "") -> str:
+def on_generate(user: User, message: str, mode=GenerateMode.GENERATE) -> str:
     message = message.replace("\r\n", '\n').replace('\\n', '\n').strip()
     if len(message) > MAX_MESSAGE_LEN:
         return f"Your message is too long! (max {MAX_MESSAGE_LEN} tokens)"
@@ -247,32 +262,47 @@ def on_generate(user: User, message: str, mode: str = "") -> str:
         return ""
     print(message)
 
-    if mode != "retry" and mode != "more":
-        save_params(user.id, "gen", mode=mode)
-
-    sampler = copy.deepcopy(INSTRUCT_SAMPLER) if mode == 'inst' else copy.deepcopy(CHAT_SAMPLER)
-    message = sampler.parse(message)
-    print(str(sampler))
-
     reply: str = ""
 
-    if mode == "retry":
+    if mode not in [GenerateMode.RETRY, GenerateMode.MORE]:
+        if mode == GenerateMode.GENERATE:
+            sampler = copy.deepcopy(CHAT_SAMPLER)
+        else:
+            sampler = copy.deepcopy(INSTRUCT_SAMPLER)
+
+        message = sampler.parse(message)
+        active_mode = mode
+        save_params(user.id, "gen", mode=mode, sampler=sampler)
+    else:
+        try:
+            params = load_params(user.id, "gen")
+            sampler: SAMPLER = params['sampler']
+            active_mode = params['mode']
+
+            message = sampler.parse(message)
+            save_params(user.id, "gen", mode=active_mode, sampler=sampler)
+        except:
+            return reply
+
+    print(str(sampler))
+
+    if mode == GenerateMode.RETRY:
         try:
             out, model_state, model_tokens = load_all_state(user.id, "gen_0")
         except:
             return reply
-    elif mode == "more":
+    elif mode == GenerateMode.MORE:
         try:
             out, model_state, model_tokens = load_all_state(user.id, "gen_1")
             save_all_state(user.id, "gen_0", out, model_state, model_tokens)
         except:
             return reply
-    elif mode == "qa":
+    elif mode == GenerateMode.QUESTION:
         message = user.qa_format(message)
         model_tokens = tokenizer.encode(message)
         out, model_state = run_rnn(model_tokens)
         save_all_state(user.id, "gen_0", out, model_state, model_tokens)
-    elif mode == "inst":
+    elif mode == GenerateMode.INSTRUCT:
         message = user.instruct_format(message)
         model_tokens = tokenizer.encode(message)
         out, model_state = run_rnn(model_tokens)
@@ -283,14 +313,13 @@ def on_generate(user: User, message: str, mode: str = "") -> str:
         out, model_state = run_rnn(model_tokens)
         save_all_state(user.id, "gen_0", out, model_state, model_tokens)
 
-    active_mode = load_params(user.id, "gen")['mode']
     occurrence = {}
     start_time = time.time()
 
     begin = len(model_tokens)
     end = begin
     for i in range(MAX_GENERATE_LEN):
-        if active_mode != "qa" and active_mode != "inst":
+        if active_mode not in [GenerateMode.QUESTION, GenerateMode.INSTRUCT]:
             out[0] = DONT_OUTPUT
         for n in occurrence:
             out[n] -= sampler.presence_penalty + \
@@ -327,7 +356,7 @@ def on_generate(user: User, message: str, mode: str = "") -> str:
     return reply
 
 
-def on_message(user: User, message: str, alt: bool = False) -> str:
+def on_message(user: User, message: str, alt=False) -> str:
     message = message.replace('\r\n', '\n').replace('\\n', '\n').strip()
     message = re.sub("\n(\s*\n)+", '\n', message)
 
@@ -350,24 +379,24 @@ def on_message(user: User, message: str, alt: bool = False) -> str:
         message = sampler.parse(message)
         save_params(user.id, "chat", mode=mode, sampler=sampler)
     except:
+        if alt:
+            return reply
+
         intro = "chat_intro"
         out, model_state, model_tokens = load_all_state("", intro)
         save_all_state(user.id, "chat", out, model_state, model_tokens)
 
-        mode = "chat"
+        mode = ChatMode.CASUAL
         sampler = copy.deepcopy(CHAT_SAMPLER)
         message = sampler.parse(message)
         save_params(user.id, "chat", mode=mode, sampler=sampler)
-
-        if alt:
-            return reply
 
     print(str(sampler))
     print(f"{user.bot_name}{user.interface}", end='')
 
     if not alt:
         message = user.chat_format(message, 'Bob', 'Alice') \
-            if mode == 'inst' else user.chat_format(message)
+            if mode == ChatMode.ASSISTANT else user.chat_format(message)
         tokens = tokenizer.encode(message)
 
         model_tokens += tokens

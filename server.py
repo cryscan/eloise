@@ -10,6 +10,7 @@ import markdown
 import imgkit
 
 from prompt import User
+from chat import GenerateMode, ChatMode
 
 app = Flask(__name__)
 
@@ -76,18 +77,18 @@ def commands(user: User, message, enable_chat=False, is_private=False):
         prompt = message[translate_match.end():]
         reply = chat.on_translate(user, prompt)
     elif retry_match:
-        reply = chat.on_generate(user, prompt, mode="retry")
+        reply = chat.on_generate(user, prompt, mode=GenerateMode.RETRY)
     elif more_match:
-        reply = chat.on_generate(user, prompt, mode="more")
+        reply = chat.on_generate(user, prompt, mode=GenerateMode.MORE)
     elif gen_match:
         prompt = message[gen_match.end():]
         reply = chat.on_generate(user, prompt, prompt)
     elif enable_chat and qa_match:
         prompt = message[qa_match.end():]
-        reply = chat.on_generate(user, prompt, mode="qa")
+        reply = chat.on_generate(user, prompt, mode=GenerateMode.QUESTION)
     elif enable_chat and inst_match:
         prompt = message[inst_match.end():]
-        reply = chat.on_generate(user, prompt, mode="inst")
+        reply = chat.on_generate(user, prompt, mode=GenerateMode.INSTRUCT)
     elif enable_chat and reset_bot_match:
         reply = chat.on_reset_bot(user)
     elif enable_chat and reset_match:
