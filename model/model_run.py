@@ -2,7 +2,7 @@
 # The RWKV Language Model - https://github.com/BlinkDL/RWKV-LM
 ########################################################################################################
 
-import types, gc, os, time, re
+import types, gc, os, time, re, threading
 import torch
 from torch.nn import functional as F
 torch.backends.cudnn.benchmark = True
@@ -69,6 +69,20 @@ if os.environ.get('RWKV_CUDA_ON') == '1':
 else:
     os.environ["RWKV_CUDA_ON"] = '0'
 
+def file_cleaner(file):
+    last_pos = 0
+    def cleaner():
+        nonlocal last_pos
+        # print("cleaner start")
+        while True:
+            time.sleep(0.1)
+            pos = file.tell()
+            if pos > last_pos:
+                # print("cleaner clean %d to %d" % (last_pos,pos))
+                os.posix_fadvise(file.fileno(),last_pos,pos-last_pos,os.POSIX_FADV_DONTNEED)
+            last_pos=pos
+    return cleaner
+
 ########################################################################################################
 
 class RWKV(MyModule):
@@ -98,7 +112,11 @@ class RWKV(MyModule):
             args.MODEL_NAME += '.pth'
         prxxx(f'Loading {args.MODEL_NAME} ...')
         with torch.no_grad():
-            self.w = torch.load(args.MODEL_NAME, map_location='cpu') # load model to CPU first
+            with open(args.MODEL_NAME, "rb") as model_file:
+                cleaner = file_cleaner(model_file)
+                cleaner_thread = threading.Thread(target=cleaner,daemon=True)
+                cleaner_thread.start()
+                self.w = torch.load(model_file, map_location='cpu') # load model to CPU first
             gc.collect()
             w = self.w
 

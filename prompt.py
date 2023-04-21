@@ -33,7 +33,7 @@ Here are some important facts about {bot}:
 
 '''
 
-        return intro
+        return f"\n{intro.strip()}\n\n"
 
     def chat_intro_zh(self):
         interface = self.interface
@@ -66,7 +66,7 @@ She also likes to tell {user} a lot about herself and her opinions, and she usua
 
 '''
 
-        return intro
+        return f"\n{intro.strip()}\n\n"
     
     def chat_intro_bot(self):
         interface = self.interface
@@ -82,7 +82,7 @@ The following is a verbose and detailed conversation between an AI assistant cal
 {bot}{interface}: Hi! I am an AI assistant called {bot}. I am pleased to answer your questions and give you helpful advices. What would you like to say?
 
 '''
-        return intro
+        return f"\n{intro.strip()}\n\n"
 
     def chat_format(self, message: str, user_name = None, bot_name = None):
         user = user_name or self.name
