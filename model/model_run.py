@@ -74,7 +74,7 @@ def file_cleaner(file):
     def cleaner():
         nonlocal last_pos
         # print("cleaner start")
-        while True:
+        while not file.closed:
             time.sleep(0.1)
             pos = file.tell()
             if pos > last_pos:
