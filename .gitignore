@@ -10,3 +10,4 @@ __pycache__/
 password.encrypt
 session.token
 device.json
+qq.txt

@@ -29,6 +29,13 @@ banned_groups = []
 non_chat_groups = []
 
 
+try:
+    with open("qq.txt", 'r') as file:
+        QQ = file.read()
+except:
+    print("Please provide your QQ number in `qq.txt`")
+    QQ = ""
+
 IMAGE_THRESHOLD = 1024
 IMAGE_WIDTH = 400
 
@@ -57,6 +64,7 @@ def commands(user: User, message, enable_chat=False, is_private=False):
     reset_bot_match = re.match("\-(bot|b)", message)
     alt_match = re.match("\-alt", message)
     chat_match = re.match("\-c(hat)?\s+", message)
+    at_match = re.match(f"\[CQ:at,qq={QQ}\]", message)
 
     help = HELP_MESSAGE.replace('<model>', MODEL_NAME)
     if is_private:
@@ -99,6 +107,9 @@ def commands(user: User, message, enable_chat=False, is_private=False):
         reply = chat.on_message(user, prompt)
     elif enable_chat and not is_private and chat_match:
         prompt = message[chat_match.end():]
+        reply = chat.on_message(user, prompt)
+    elif QQ and enable_chat and not is_private and at_match:
+        prompt = message[at_match.end():]
         reply = chat.on_message(user, prompt)
     else:
         matched = False
