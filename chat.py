@@ -71,16 +71,6 @@ args.MODEL_NAME = '/root/autodl-tmp/models/RWKV-4-Raven-14B-v9-Eng99%-Other1%-20
 
 args.STATE_DUMP_NAME = './state_14b'
 
-args.vocab_size = 50277
-args.head_qk = 0
-args.pre_ffn = 0
-args.grad_cp = 0
-args.my_pos_emb = 0
-
-args.n_layer = 40   # 32
-args.n_embd = 5120  # 4096
-args.ctx_len = 4096
-
 
 class GenerateMode(Enum):
     GENERATE = 0
@@ -134,7 +124,7 @@ def load_all_state(uid, channel):
     model_tokens = copy.deepcopy(all_state[n]['token'])
 
     if model_state:
-        for i in range(args.n_layer):
+        for i in range(model.args.n_layer):
             dd = model.strategy[i]
             dev = dd.device
             atype = dd.atype
