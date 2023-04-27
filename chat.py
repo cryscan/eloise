@@ -53,23 +53,23 @@ INSTRUCT_SAMPLER = SAMPLER("nucleus", 0.8, 0.5, 0.95, 0.1, 0.1)
 args = types.SimpleNamespace()
 
 # args.strategy = 'cpu fp32'
-# args.strategy = 'cuda fp16'
+args.strategy = 'cuda fp16'
 # args.strategy = 'cuda fp16 *8 -> cpu fp32'
 # args.strategy = 'cuda fp16 *6+'
 # args.strategy = 'cuda fp16 *0+ -> cpu fp32 *1'
 # args.strategy = 'cuda fp16 *32 -> cpu fp32'
 # args.strategy = 'cuda fp16 *20 -> cpu fp32'
-args.strategy = 'cuda fp16i8 *18 -> cuda fp16'
+# args.strategy = 'cuda fp16i8 *18 -> cuda fp16'
 
 # args.MODEL_NAME = '/root/autodl-tmp/models/RWKV-4-Pile-7B-20221115-8047'
 # args.MODEL_NAME = '/root/autodl-tmp/models/RWKV-4-Pile-14B-20230213-8019'
 # args.MODEL_NAME = '/root/autodl-tmp/models/RWKV-4-Pile-14B-20230228-ctx4096-test663'
 # args.MODEL_NAME = '/root/autodl-tmp/models/RWKV-4-Pile-14B-20230313-ctx8192-test1050'
 # args.MODEL_NAME = '/root/autodl-tmp/models/RWKV-4-Pile-14B-Instruct-test5-20230329-ctx4096'
-args.MODEL_NAME = '/root/autodl-tmp/models/RWKV-4-Raven-14B-v9-Eng99%-Other1%-20230412-ctx8192'
-# args.MODEL_NAME = '/root/autodl-tmp/models/RWKV-4-Pile-7B-EngChn-test5-20230330'
+# args.MODEL_NAME = '/root/autodl-tmp/models/RWKV-4-Raven-14B-v9-Eng99%-Other1%-20230412-ctx8192'
+args.MODEL_NAME = '/root/autodl-tmp/models/rwkv-chatgal-0426-7B-ctx4096-epoch19'
 
-args.STATE_DUMP_NAME = './state_14b'
+args.STATE_DUMP_NAME = './state_7b'
 
 
 class GenerateMode(Enum):
