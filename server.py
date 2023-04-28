@@ -44,7 +44,7 @@ with open("./help.md", 'r') as file:
     HELP_MESSAGE = file.read()
 CHAT_HELP_COMMAND = "`-c, -chat <text>`"
 PRIVATE_HELP_COMMAND = "`<text>`"
-MODEL_NAME = "Raven v9 14B Eng ctx 8192"
+MODEL_NAME = "Raven v10 14B Eng ctx 8192"
 
 received_messages = set()
 
