@@ -23,11 +23,11 @@ Model: <model>
 | ----------------- | ---------------------------------- | ------------------- | ------------------------------ |
 | `-nucleus`        | Switch to nucleus sampling         |                     | Yes                            |
 | `-typical`        | Switch to typical sampling         | Yes                 |                                |
-| `-temp=<number>`  | Higher temperature → more verbose  | 1                   | 0.8                            |
-| `-top_p=<number>` | Lower top p → more accurate answer | 0.8                 | 0.5                            |
-| `-tau=<number>`   | Lower tau → more human-like answer | 0.2                 | 0.95                           |
-| `-af=<number>`    | Count penalty, avoids repeating    | 0.1                 | 0.1                            |
-| `-ap=<number>`    | Presence penalty                   | 0.1                 | 0.1                            |
+| `-temp=<number>`  | Higher temperature → more verbose  | <chat_temp>         | <inst_temp>                    |
+| `-top_p=<number>` | Lower top p → more accurate answer | <chat_top_p>        | <inst_top_p>                   |
+| `-tau=<number>`   | Lower tau → more human-like answer | <chat_tau>          | <inst_tau>                     |
+| `-af=<number>`    | Count penalty, avoids repeating    | <chat_af>           | <inst_af>                      |
+| `-ap=<number>`    | Presence penalty                   | <chat_ap>           | <inst_ap>                      |
 
 ### Examples
 #### Chat

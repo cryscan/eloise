@@ -40,6 +40,8 @@ SAME_LANG = "PLEASE SELECT TWO DISTINCT LANGUAGES"
 tokenizer = TOKENIZER("20B_tokenizer.json")
 
 DONT_OUTPUT = -float('inf')
+END_OF_TEXT = 0
+END_OF_LINE = 187
 
 MAX_MESSAGE_LEN = 2048
 CHUNK_LEN = 256
@@ -411,7 +413,7 @@ def on_message(user: User, message: str, alt=False) -> str:
             nl_bias = 0
         # else:
         #     nl_bias = (i - 300) * 0.25
-        out[187] += nl_bias
+        out[END_OF_LINE] += nl_bias
         for n in occurrence:
             out[n] -= sampler.presence_penalty + \
                 occurrence[n] * sampler.count_penalty
@@ -422,7 +424,7 @@ def on_message(user: User, message: str, alt=False) -> str:
         else:
             occurrence[token] += 1
 
-        tokens = tokenizer.encode('\n\n') if token == 0 else [token]
+        tokens = [END_OF_LINE, END_OF_LINE] if token == END_OF_TEXT else [token]
         model_tokens += tokens
         out, model_state = run_rnn(tokens, model_state)
 

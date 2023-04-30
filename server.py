@@ -10,7 +10,7 @@ import markdown
 import imgkit
 
 from prompt import User
-from chat import GenerateMode, ChatMode
+from chat import GenerateMode, CHAT_SAMPLER, INSTRUCT_SAMPLER, model
 
 app = Flask(__name__)
 
@@ -39,12 +39,34 @@ except:
 IMAGE_THRESHOLD = 1024
 IMAGE_WIDTH = 400
 
-
-with open("./help.md", 'r') as file:
-    HELP_MESSAGE = file.read()
 CHAT_HELP_COMMAND = "`-c, -chat <text>`"
 PRIVATE_HELP_COMMAND = "`<text>`"
-MODEL_NAME = "Raven v10 14B Eng ctx 8192"
+
+with open("./help.md", 'r') as file:
+    model_name = model.args.MODEL_NAME.split('/')[-1].replace('.pth', '')
+
+    HELP_MESSAGE = file.read()
+    HELP_MESSAGE = HELP_MESSAGE.replace('<model>', model_name)
+    HELP_MESSAGE = HELP_MESSAGE.replace(
+        '<chat_temp>', str(CHAT_SAMPLER.temp))
+    HELP_MESSAGE = HELP_MESSAGE.replace(
+        '<chat_top_p>', str(CHAT_SAMPLER.top_p))
+    HELP_MESSAGE = HELP_MESSAGE.replace(
+        '<chat_tau>', str(CHAT_SAMPLER.tau))
+    HELP_MESSAGE = HELP_MESSAGE.replace(
+        '<chat_af>', str(CHAT_SAMPLER.count_penalty))
+    HELP_MESSAGE = HELP_MESSAGE.replace(
+        '<chat_ap>', str(CHAT_SAMPLER.presence_penalty))
+    HELP_MESSAGE = HELP_MESSAGE.replace(
+        '<inst_temp>', str(INSTRUCT_SAMPLER.temp))
+    HELP_MESSAGE = HELP_MESSAGE.replace(
+        '<inst_top_p>', str(INSTRUCT_SAMPLER.top_p))
+    HELP_MESSAGE = HELP_MESSAGE.replace(
+        '<inst_tau>', str(INSTRUCT_SAMPLER.tau))
+    HELP_MESSAGE = HELP_MESSAGE.replace(
+        '<inst_af>', str(INSTRUCT_SAMPLER.count_penalty))
+    HELP_MESSAGE = HELP_MESSAGE.replace(
+        '<inst_ap>', str(INSTRUCT_SAMPLER.presence_penalty))
 
 received_messages = set()
 
@@ -66,7 +88,7 @@ def commands(user: User, message, enable_chat=False, is_private=False):
     chat_match = re.match("\-c(hat)?\s+", message)
     at_match = re.match(f"\[CQ:at,qq={QQ}\]", message)
 
-    help = HELP_MESSAGE.replace('<model>', MODEL_NAME)
+    help = HELP_MESSAGE
     if is_private:
         help = help.replace('<chat>', PRIVATE_HELP_COMMAND)
     else:
