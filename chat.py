@@ -63,15 +63,9 @@ args = types.SimpleNamespace()
 # args.strategy = 'cuda fp16 *20 -> cpu fp32'
 args.strategy = 'cuda fp16i8 *18 -> cuda fp16'
 
-# args.MODEL_NAME = '/root/autodl-tmp/models/RWKV-4-Pile-7B-20221115-8047'
-# args.MODEL_NAME = '/root/autodl-tmp/models/RWKV-4-Pile-14B-20230213-8019'
-# args.MODEL_NAME = '/root/autodl-tmp/models/RWKV-4-Pile-14B-20230228-ctx4096-test663'
-# args.MODEL_NAME = '/root/autodl-tmp/models/RWKV-4-Pile-14B-20230313-ctx8192-test1050'
-# args.MODEL_NAME = '/root/autodl-tmp/models/RWKV-4-Pile-14B-Instruct-test5-20230329-ctx4096'
 args.MODEL_NAME = '/root/autodl-tmp/models/RWKV-4-Raven-14B-v10-Eng99%-Other1%-20230427-ctx8192'
-# args.MODEL_NAME = '/root/autodl-tmp/models/RWKV-4-Pile-7B-EngChn-test5-20230330'
 
-args.STATE_DUMP_NAME = './state_14b'
+args.STATE_DUMP_NAME = 'states/14b.state'
 
 
 class GenerateMode(Enum):
@@ -175,12 +169,12 @@ def init_run():
 
 def recover_all_state():
     global all_state
-    with open(args.STATE_DUMP_NAME + '.pickle', 'rb') as file:
+    with open(args.STATE_DUMP_NAME, 'rb') as file:
         all_state = pickle.load(file)
 
 
 def dump_all_state():
-    with open(args.STATE_DUMP_NAME + '.pickle', 'wb') as file:
+    with open(args.STATE_DUMP_NAME, 'wb') as file:
         pickle.dump(all_state, file, protocol=pickle.HIGHEST_PROTOCOL)
 
 
