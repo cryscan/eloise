@@ -14,9 +14,9 @@ import langid
 
 from model.model_run import RWKV
 from model.utils import TOKENIZER, SAMPLER
+from prompt import User, Scenario, SCENARIO_ALICE, SCENARIO_ELOISE
 
 import prompt
-from prompt import User
 
 try:
     os.environ["CUDA_VISIBLE_DEVICES"] = sys.argv[1]
@@ -74,11 +74,6 @@ class GenerateMode(Enum):
     QUESTION = 2
     RETRY = 3
     MORE = 4
-
-
-class ChatMode(Enum):
-    CASUAL = 0
-    ASSISTANT = 1
 
 
 # Load Model
@@ -154,14 +149,16 @@ def init_run():
         print("Recovered state")
     except:
         print("Loading chat intro...")
-        tokens = tokenizer.encode(prompt.default_user.chat_intro())
+        scenario = SCENARIO_ELOISE
+        tokens = tokenizer.encode(scenario.intro())
         out, state = run_rnn(tokens)
-        save_all_state("", "chat_intro", out, state, tokens)
+        save_all_state("", scenario.intro.__name__, out, state, tokens)
 
-        print("Loading bot chat intro...")
-        tokens = tokenizer.encode(prompt.default_user.chat_intro_bot())
+        print("Loading chat intro...")
+        scenario = SCENARIO_ALICE
+        tokens = tokenizer.encode(scenario.intro())
         out, state = run_rnn(tokens)
-        save_all_state("", "chat_intro_bot", out, state, tokens)
+        save_all_state("", scenario.intro.__name__, out, state, tokens)
 
         clear_cache()
         dump_all_state()
@@ -192,37 +189,29 @@ def translate_message(message, from_lang, to_lang):
     return translated
 
 
-def on_reset(user: User) -> str:
-    out, model_state, model_tokens = load_all_state("", "chat_intro")
+def on_reset(user: User, scenario: Scenario, sampler: SAMPLER) -> str:
+    out, model_state, model_tokens = load_all_state(
+        '', scenario.intro.__name__)
+    scenario = copy.deepcopy(scenario)
+
     save_all_state(user.id, "chat", out, model_state, model_tokens)
-    save_params(user.id, "chat", mode=ChatMode.CASUAL, sampler=CHAT_SAMPLER)
+    save_params(user.id, "chat", scenario=scenario, sampler=sampler)
 
-    reply = f"Chat reset for {user.nickname}."
-    return reply
-
-
-def on_reset_bot(user: User) -> str:
-    out, model_state, model_tokens = load_all_state("", "chat_intro_bot")
-    save_all_state(user.id, "chat", out, model_state, model_tokens)
-    save_params(user.id, "chat", mode=ChatMode.ASSISTANT,
-                sampler=INSTRUCT_SAMPLER)
-
-    reply = f"Chat reset for {user.nickname}. Bot context loaded."
-    return reply
+    return f"Chat reset for {user.nickname}. You are {scenario.user_name} and I am {scenario.bot_name}."
 
 
 def on_show_params(user: User, message: str) -> str:
     try:
         params = load_params(user.id, "chat")
-        mode = params['mode']
+        scenario: Scenario = params['scenario']
         sampler: SAMPLER = params['sampler']
         message = sampler.parse(message)
-        save_params(user.id, "chat", mode=mode, sampler=sampler)
+        save_params(user.id, "chat", scenario=scenario, sampler=sampler)
     except:
-        mode = ChatMode.CASUAL
         sampler = copy.deepcopy(CHAT_SAMPLER)
+        scenario = SCENARIO_ELOISE
         message = sampler.parse(message)
-        save_params(user.id, "chat", mode=mode, sampler=sampler)
+        save_params(user.id, "chat", scenario=scenario, sampler=sampler)
     return str(sampler)
 
 
@@ -284,12 +273,12 @@ def on_generate(user: User, message: str, mode=GenerateMode.GENERATE) -> str:
         except:
             return reply
     elif mode == GenerateMode.QUESTION:
-        message = user.qa_format(message)
+        message = prompt.qa_format(message)
         model_tokens = tokenizer.encode(message)
         out, model_state = run_rnn(model_tokens)
         save_all_state(user.id, "gen_0", out, model_state, model_tokens)
     elif mode == GenerateMode.INSTRUCT:
-        message = user.instruct_format(message)
+        message = prompt.instruct_format(message)
         model_tokens = tokenizer.encode(message)
         out, model_state = run_rnn(model_tokens)
         save_all_state(user.id, "gen_0", out, model_state, model_tokens)
@@ -360,29 +349,29 @@ def on_message(user: User, message: str, alt=False) -> str:
         out, model_state, model_tokens = load_all_state(user.id, channel)
 
         params = load_params(user.id, "chat")
-        mode = params['mode']
+        scenario: Scenario = params['scenario']
         sampler: SAMPLER = params['sampler']
         message = sampler.parse(message)
-        save_params(user.id, "chat", mode=mode, sampler=sampler)
+        save_params(user.id, "chat", scenario=scenario, sampler=sampler)
     except:
         if alt:
             return reply
 
-        intro = "chat_intro"
-        out, model_state, model_tokens = load_all_state("", intro)
-        save_all_state(user.id, "chat", out, model_state, model_tokens)
-
-        mode = ChatMode.CASUAL
+        scenario = copy.deepcopy(SCENARIO_ELOISE)
         sampler = copy.deepcopy(CHAT_SAMPLER)
         message = sampler.parse(message)
-        save_params(user.id, "chat", mode=mode, sampler=sampler)
+
+        out, model_state, model_tokens = load_all_state(
+            '', scenario.intro.__name__)
+
+        save_all_state(user.id, "chat", out, model_state, model_tokens)
+        save_params(user.id, "chat", scenario=scenario, sampler=sampler)
 
     print(str(sampler))
-    print(f"{user.bot_name}{user.interface}", end='')
+    print(f"{scenario.bot_name}{scenario.interface}", end='')
 
     if not alt:
-        message = user.chat_format(message, 'Bob', 'Alice') \
-            if mode == ChatMode.ASSISTANT else user.chat_format(message)
+        message = scenario.chat_format(message)
         tokens = tokenizer.encode(message)
 
         model_tokens += tokens
@@ -401,8 +390,8 @@ def on_message(user: User, message: str, alt=False) -> str:
     for i in range(MAX_REPLY_LEN):
         if i <= 0:
             nl_bias = DONT_OUTPUT
-        elif i <= 30:
-            nl_bias = (i - 30) * 0.1
+        # elif i <= 30:
+        #     nl_bias = (i - 30) * 0.1
         else:
             nl_bias = 0
         # else:
@@ -450,7 +439,7 @@ def on_message(user: User, message: str, alt=False) -> str:
             return idx, reply, out, model_state, model_tokens
 
         idx, reply, out, model_state, model_tokens = recover_state(
-            f"{user.name}{user.interface}",
+            f"{scenario.user_name}{scenario.interface}",
             reply,
             out,
             model_state,
@@ -460,7 +449,7 @@ def on_message(user: User, message: str, alt=False) -> str:
             break
 
         idx, reply, out, model_state, model_tokens = recover_state(
-            f"{user.bot_name}{user.interface}",
+            f"{scenario.bot_name}{scenario.interface}",
             reply,
             out,
             model_state,
@@ -472,9 +461,9 @@ def on_message(user: User, message: str, alt=False) -> str:
     clear_cache()
     save_all_state(user.id, "chat", out, model_state, model_tokens)
 
-    reply = reply.replace(user.name, user.nickname)
-    reply = reply.replace(user.name.lower(), user.nickname)
-    reply = reply.replace(user.name.upper(), user.nickname)
+    reply = reply.replace(scenario.user_name, user.nickname)
+    reply = reply.replace(scenario.user_name.lower(), user.nickname)
+    reply = reply.replace(scenario.user_name.upper(), user.nickname)
     reply = reply.strip()
     # reply = translate_message(reply, "en", lang)
     return reply

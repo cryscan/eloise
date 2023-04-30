@@ -4,18 +4,22 @@ class User:
         self.nickname = sender.get('nickname')
         self.sex = sender.get('sex')    # "unknown", "male", "female"
 
-        self.name = "Leika" if self.sex == "female" else "Rylan"
-        self.bot_name = "Eloise"
-        self.interface = ":"
+
+class Scenario:
+    def __init__(self, user_name, bot_name, intro):
+        self.user_name = user_name
+        self.bot_name = bot_name
+        self.intro = getattr(self, intro)
+        self.interface = ':'
 
     def chat_intro(self):
         interface = self.interface
 
-        user = self.name
+        user = self.user_name
         bot = self.bot_name
 
         intro = f'''
-The following is a coherent verbose detailed conversation between a girl named {bot} and her friend {user}. One day, they meet at a café.
+The following is a coherent verbose detailed conversation between {user} and a girl named {bot}. One day, they meet at a café.
 Here are some important facts about {bot}:
 1. {bot} is a girl in college majoring in Computer Science.
 2. {bot} has her free will to make decisions and criticize.
@@ -24,19 +28,18 @@ Here are some important facts about {bot}:
 5. {bot} likes to tell {user} a lot about herself and her opinions.
 6. {bot} usually gives {user} kind, helpful and informative advices.
 
-{user}{interface} Hello, how are you doing?
+{user}{interface} Hello, could you introduce yourself?
 
-{bot}{interface} Hi! Thanks, I'm fine. What about you?
+{bot}{interface} Hi! I am {bot}, and I am a college student majoring in Computer Science. I like to share my experiences with other people, but it doesn't mean I have all the answers. Sometimes I ask my friends for their advice or listen to what they think about certain issues. It's all about how to combine all of this and use your experience and knowledge.
 
-{user}{interface} I am fine. It's nice to see you. Look, here is a café. We can go and take a look. Would you like to chat with me for a while?
+{user}{interface} It's nice to meet you. Look, here is a café. We can go and take a look. Would you like to chat with me for a while?
 
-{bot}{interface} Sure. Let's meet inside. I'm glad to answer your questions or give helpful advices. You know, I am confident with my expertise.
+{bot}{interface} Sure. Let's meet inside.
 
 '''
-
         return f"\n{intro.strip()}\n\n"
-    
-    def chat_intro_bot(self):
+
+    def chat_intro_assistant(self):
         interface = self.interface
 
         user = "Bob"
@@ -52,21 +55,23 @@ The following is a verbose and detailed conversation between an AI assistant cal
 '''
         return f"\n{intro.strip()}\n\n"
 
-    def chat_format(self, message: str, user_name = None, bot_name = None):
-        user = user_name or self.name
-        bot = bot_name or self.bot_name
+    def chat_format(self, message: str):
+        user = self.user_name
+        bot = self.bot_name
         interface = self.interface
 
         message = message.replace('\n', ' ').strip()
         return f"{user}{interface} {message}\n\n{bot}{interface}"
 
-    def qa_format(self, message: str):
-        message = message.replace('\n', ' ').strip()
-        return f"\nAsk Experts Questions and Answers\n\nQuestion:\n{message}?\n\nExpert Full Answer:\n"
 
-    def instruct_format(self, message: str):
-        message = message.replace('\n', ' ').strip()
-        return f'''
+def qa_format(message: str):
+    message = message.replace('\n', ' ').strip()
+    return f"\nAsk Experts Questions and Answers\n\nQuestion:\n{message}?\n\nExpert Full Answer:\n"
+
+
+def instruct_format(message: str):
+    message = message.replace('\n', ' ').strip()
+    return f'''
 Below is an instruction that describes a task.\
 Write a response that appropriately completes the request and follows the instructions strictly.
 
@@ -77,12 +82,6 @@ Write a response that appropriately completes the request and follows the instru
 '''
 
 
-default_user = User({
-    'user_id': 0,
-    'nickname': 'John',
-    'sex': 'unknown'
-})
-
-
-if __name__ == "__main__":
-    print(default_user.chat_intro())
+SCENARIO_ELOISE = Scenario(user_name='Troy', bot_name='Eloise', intro='chat_intro')
+SCENARIO_ALICE = Scenario(
+    user_name='Bob', bot_name='Alice', intro='chat_intro_assistant')
