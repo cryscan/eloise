@@ -49,7 +49,7 @@ CHUNK_LEN = 256
 MAX_GENERATE_LEN = 250
 MAX_REPLY_LEN = 1024
 
-CHAT_SAMPLER = SAMPLER("typical", 1.0, 0.8, 0.2, 0.1, 0.1)
+CHAT_SAMPLER = SAMPLER("typical", 1.0, 0.8, 0.2, 0.0, 0.0)
 INSTRUCT_SAMPLER = SAMPLER("nucleus", 0.8, 0.5, 0.95, 0.1, 0.1)
 
 args = types.SimpleNamespace()
@@ -61,7 +61,7 @@ args = types.SimpleNamespace()
 # args.strategy = 'cuda fp16 *0+ -> cpu fp32 *1'
 # args.strategy = 'cuda fp16 *32 -> cpu fp32'
 # args.strategy = 'cuda fp16 *20 -> cpu fp32'
-args.strategy = 'cuda fp16i8 *18 -> cuda fp16'
+args.strategy = 'cuda fp16i8 *16 -> cuda fp16'
 
 args.MODEL_NAME = '/root/autodl-tmp/models/RWKV-4-Raven-14B-v10-Eng99%-Other1%-20230427-ctx8192'
 

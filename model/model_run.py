@@ -2,7 +2,7 @@
 # The RWKV Language Model - https://github.com/BlinkDL/RWKV-LM
 ########################################################################################################
 
-import types, gc, os, time, re, threading
+import types, gc, os, time, re
 import torch
 from torch.nn import functional as F
 torch.backends.cudnn.benchmark = True
@@ -30,34 +30,37 @@ if os.environ.get('RWKV_CUDA_ON') == '1':
         name=f"wkv_cuda",
         sources=[f"{current_path}/cuda/wrapper.cpp", f"{current_path}/cuda/operators.cu"],
         verbose=True,
-        extra_cuda_cflags=["-t 4", "-std=c++17", "--use_fast_math", "-O3", "--extra-device-vectorization", "-DOPTIMIZED_MM8"],
+        extra_cuda_cflags=["-t 4", "-std=c++17", "--use_fast_math", "-O3", "--extra-device-vectorization"],
         is_python_module=False)
 
     @MyStatic
     def cuda_wkv(T: int, C: int, w, u, k, v, aa, bb, pp):
         assert 1 * C % min(C, 32) == 0
-        assert k.dtype == torch.float16
+        assert k.dtype == v.dtype == torch.float16 or k.dtype == v.dtype == torch.float32
+        assert w.dtype == u.dtype == aa.dtype == bb.dtype == pp.dtype == torch.float32
         w = w.contiguous()
         u = u.contiguous()
         k = k.contiguous()
         v = v.contiguous()
-        y = torch.empty((T, C), device=w.device, memory_format=torch.contiguous_format, dtype=torch.float16)
+        y = torch.empty((T, C), device=w.device, memory_format=torch.contiguous_format, dtype=k.dtype)
         torch.ops.rwkv.wkv_forward(1, T, C, w, u, k, v, y, aa, bb, pp)
         return y, aa, bb, pp
     @MyStatic
     def cuda_mm8_seq(B: int, N: int, M: int, x, w, mx, rx, my, ry):
-        assert x.dtype == mx.dtype == rx.dtype == my.dtype == ry.dtype == torch.float16
+        assert x.dtype == mx.dtype == rx.dtype == my.dtype == ry.dtype
+        assert x.dtype == torch.float32 or x.dtype == torch.float16
         assert w.dtype == torch.uint8
         assert x.shape == [B, N]
         assert w.shape == [N, M]
         assert rx.shape == mx.shape == [M]
         assert ry.shape == my.shape == [N, 1]
-        y = torch.empty((B, M), device=w.device, dtype=torch.float16)
+        y = torch.empty((B, M), device=w.device, dtype=x.dtype)
         torch.ops.rwkv.mm8_seq(B, N, M, x, w, mx, rx, my, ry, y)
         return y
     @MyStatic
     def cuda_mm8_one(N: int, M: int, x, w, mx, rx, my, ry):
-        assert x.dtype == mx.dtype == rx.dtype == my.dtype == ry.dtype == torch.float16
+        assert x.dtype == mx.dtype == rx.dtype == my.dtype == ry.dtype
+        assert x.dtype == torch.float32 or x.dtype == torch.float16
         assert w.dtype == torch.uint8
         assert x.shape == [N]
         assert w.shape == [N, M]
@@ -65,23 +68,9 @@ if os.environ.get('RWKV_CUDA_ON') == '1':
         assert ry.shape == my.shape == [N, 1]
         y = torch.zeros((M,), device=w.device, dtype=torch.float32)
         torch.ops.rwkv.mm8_one(N, M, x, w, mx, rx, my, ry, y)
-        return y.to(dtype=torch.float16)
+        return y.to(dtype=x.dtype)
 else:
     os.environ["RWKV_CUDA_ON"] = '0'
-
-def file_cleaner(file):
-    last_pos = 0
-    def cleaner():
-        nonlocal last_pos
-        # print("cleaner start")
-        while not file.closed:
-            time.sleep(0.1)
-            pos = file.tell()
-            if pos > last_pos:
-                # print("cleaner clean %d to %d" % (last_pos,pos))
-                os.posix_fadvise(file.fileno(),last_pos,pos-last_pos,os.POSIX_FADV_DONTNEED)
-            last_pos=pos
-    return cleaner
 
 ########################################################################################################
 
@@ -93,7 +82,7 @@ class RWKV(MyModule):
         else:
             prxxx = lambda *args, **kwargs: None
 
-        STRATEGY_REGEX = r"^(?:(?:^|->) *(?:cuda(?::[\d]+)?|cpu) (?:fp(?:16|32)|bf16)(?:i8|i4|i3)?(?: \*[\d]+\+?)? *)+$"
+        STRATEGY_REGEX = r"^(?:(?:^|->) *(?:cuda(?::[\d]+)?|cpu|mps) (?:fp(?:16|32)|bf16)(?:i8|i4|i3)?(?: \*[\d]+\+?)? *)+$"
         if not re.match(STRATEGY_REGEX, strategy):
             raise ValueError("Invalid strategy. Please read https://pypi.org/project/rwkv/")
 
@@ -112,11 +101,7 @@ class RWKV(MyModule):
             args.MODEL_NAME += '.pth'
         prxxx(f'Loading {args.MODEL_NAME} ...')
         with torch.no_grad():
-            with open(args.MODEL_NAME, "rb") as model_file:
-                cleaner = file_cleaner(model_file)
-                cleaner_thread = threading.Thread(target=cleaner,daemon=True)
-                cleaner_thread.start()
-                self.w = torch.load(model_file, map_location='cpu') # load model to CPU first
+            self.w = torch.load(args.MODEL_NAME, map_location='cpu') # load model to CPU first
             gc.collect()
             w = self.w
 
@@ -209,9 +194,6 @@ class RWKV(MyModule):
 
             ####################### Load weights to self.w
 
-            # Add vocabulary padding
-            self.vocab_pad = (-w['head.weight'].shape[1]) % 64
-
             if not ALREADY_CONVERTED:
                 try: # precompute embedding
                     w['emb.weight'] = F.layer_norm(w['emb.weight'], (args.n_embd,), weight=w['blocks.0.ln0.weight'], bias=w['blocks.0.ln0.bias'])
@@ -231,10 +213,6 @@ class RWKV(MyModule):
                 DEVICE = dd.device
                 ATYPE = dd.atype
                 WTYPE = dd.wtype
-
-                # Add vocabulary padding
-                if x in ['head.weight', 'head.weight_rx', 'head.weight_mx']:
-                    w[x] = F.pad(input=w[x], pad=(0,self.vocab_pad), mode='constant', value=0)
 
                 if not ALREADY_CONVERTED:
                     if self.RESCALE_LAYER > 0:
@@ -259,25 +237,24 @@ class RWKV(MyModule):
                             else:
                                 w[x] = w[x].float()
 
-                                make_nonzero = lambda z : z+(z==0).to(z.dtype)
                                 if w[x].shape[0] > w[x].shape[1]:
                                     w[x+'_my'] = torch.amin(w[x], dim=1).unsqueeze(1)
                                     w[x] = w[x] - w[x+'_my']
                                     w[x+'_mx'] = torch.amin(w[x], dim=0)
                                     w[x] = w[x] - w[x+'_mx']
                                     w[x+'_rx'] = torch.amax(w[x], dim=0)
-                                    w[x] = w[x] / make_nonzero(w[x+'_rx'])
+                                    w[x] = w[x] / w[x+'_rx']
                                     w[x+'_ry'] = torch.amax(w[x], dim=1).unsqueeze(1)
-                                    w[x] = w[x] / make_nonzero(w[x+'_ry'])
+                                    w[x] = w[x] / w[x+'_ry']
                                 else:
                                     w[x+'_mx'] = torch.amin(w[x], dim=0)
                                     w[x] = w[x] - w[x+'_mx']
                                     w[x+'_my'] = torch.amin(w[x], dim=1).unsqueeze(1)
                                     w[x] = w[x] - w[x+'_my']
                                     w[x+'_rx'] = torch.amax(w[x], dim=0)
-                                    w[x] = w[x] / make_nonzero(w[x+'_rx'])
+                                    w[x] = w[x] / w[x+'_rx']
                                     w[x+'_ry'] = torch.amax(w[x], dim=1).unsqueeze(1)
-                                    w[x] = w[x] / make_nonzero(w[x+'_ry'])
+                                    w[x] = w[x] / w[x+'_ry']
 
                                 w[x] = torch.clip(torch.floor(w[x] * 256), min=0, max=255).to(dtype=torch.uint8)
                                 w[x+'_mx'] = w[x+'_mx'].to(dtype=ATYPE).contiguous()
@@ -308,7 +285,9 @@ class RWKV(MyModule):
                             pass
 
                 if 'ffn.value.weight' in x:
-                    self.clear_cache()
+                    gc.collect()
+                    if 'cuda' in args.strategy_string:
+                        torch.cuda.empty_cache()
 
                 shape = [i for i in w[x].shape if i != 1]
                 if len(shape) > 1:
@@ -337,30 +316,42 @@ class RWKV(MyModule):
                 prxxx(f'Converted and saved. Now this will exit.')
                 exit(0)
 
-    def clear_cache(self):
-        gc.collect()
-        if 'cuda' in self.args.strategy_string:
-            torch.cuda.empty_cache()
 
-    ########################################################################################################
+    def clear_cache(self):
+            gc.collect()
+            if 'cuda' in self.args.strategy_string:
+                torch.cuda.empty_cache()
 
     @MyFunction
-    def mm8_seq(self, x, w, mx, rx, my, ry):
+    def torch_mm8_seq(self, x, w, mx, rx, my, ry):
+        return x @ ((w.to(dtype=x.dtype) + 0.5) * ry * rx + my + mx)
+
+    @MyFunction
+    def torch_mm8_one(self, x, w, mx, rx, my, ry):
         return x @ ((w.to(dtype=x.dtype) + 0.5) * ry * rx + my + mx)
 
     if os.environ.get('RWKV_CUDA_ON') == '1':
-#        @MyFunction
-#        def mm8_seq(self, x, w, mx, rx, my, ry): # Currently slower than naive pytorch
-#            B, N, M = x.shape[0], w.shape[0], w.shape[1]
-#            return cuda_mm8_seq(B, N, M, x, w, mx, rx, my, ry)
+        @MyFunction
+        def mm8_seq(self, x, w, mx, rx, my, ry):
+            if w.device.type == 'cuda' and x.dtype == torch.float16:
+                B, N, M = x.shape[0], w.shape[0], w.shape[1]
+                return cuda_mm8_seq(B, N, M, x, w, mx, rx, my, ry)
+            else:
+                return self.torch_mm8_seq(x, w, mx, rx, my, ry)
         @MyFunction
         def mm8_one(self, x, w, mx, rx, my, ry):
-            N, M = w.shape[0], w.shape[1]
-            return cuda_mm8_one(N, M, x, w, mx, rx, my, ry)
+            if w.device.type == 'cuda':
+                N, M = w.shape[0], w.shape[1]
+                return cuda_mm8_one(N, M, x, w, mx, rx, my, ry)
+            else:
+                return self.torch_mm8_one(x, w, mx, rx, my, ry)
     else:
         @MyFunction
+        def mm8_seq(self, x, w, mx, rx, my, ry):
+            return self.torch_mm8_seq(x, w, mx, rx, my, ry)
+        @MyFunction
         def mm8_one(self, x, w, mx, rx, my, ry):
-            return x @ ((w.to(dtype=x.dtype) + 0.5) * ry * rx + my + mx)
+            return self.torch_mm8_one(x, w, mx, rx, my, ry)
 
     ########################################################################################################
 
@@ -692,7 +683,5 @@ class RWKV(MyModule):
                     x = self.mm8_seq(x, w['head.weight'], w['head.weight_mx'], w['head.weight_rx'], w['head.weight_my'], w['head.weight_ry'])
                 else:
                     x = self.mm8_one(x, w['head.weight'], w['head.weight_mx'], w['head.weight_rx'], w['head.weight_my'], w['head.weight_ry'])
-
-            if self.vocab_pad: x = x[...,:-self.vocab_pad]
 
             return x.float(), state
