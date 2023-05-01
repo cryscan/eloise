@@ -149,6 +149,8 @@ def post_data():
 
     if message_id in received_messages:
         return 'OK'
+    if len(received_messages) > 500:
+        received_messages.clear()
 
     if type == 'private':
         user = User(sender)
@@ -212,10 +214,10 @@ def post_data():
                 path = os.path.abspath(file)
                 imgkit.from_string(html, file)
                 requests.get(
-                    f"http://127.0.0.1:5700/send_group_msg?group_id={group_id}&message=[CQ:at,qq={user.id}][CQ:image,file=file:///{path}]")
+                    f"http://127.0.0.1:5700/send_group_msg?group_id={group_id}&message=[CQ:reply,id={message_id}][CQ:image,file=file:///{path}]")
             else:
                 requests.get(
-                    f"http://127.0.0.1:5700/send_group_msg?group_id={group_id}&message=[CQ:at,qq={user.id}]\n{quote(reply)}")
+                    f"http://127.0.0.1:5700/send_group_msg?group_id={group_id}&message=[CQ:reply,id={message_id}]{quote(reply)}")
 
     return 'OK'
 

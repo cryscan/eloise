@@ -235,7 +235,7 @@ def on_generate(user: User, message: str, mode=GenerateMode.GENERATE) -> str:
         return f"Your message is too long! (max {MAX_MESSAGE_LEN} tokens)"
     if len(message) == 0:
         return ""
-    print(message)
+    print(f"{user.nickname}({user.id}): {message}")
 
     reply: str = ""
 
@@ -390,8 +390,8 @@ def on_message(user: User, message: str, alt=False) -> str:
     for i in range(MAX_REPLY_LEN):
         if i <= 0:
             nl_bias = DONT_OUTPUT
-        # elif i <= 30:
-        #     nl_bias = (i - 30) * 0.1
+        elif i <= 30:
+            nl_bias = (i - 30) * 0.1
         else:
             nl_bias = 0
         # else:
