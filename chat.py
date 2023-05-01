@@ -49,7 +49,7 @@ CHUNK_LEN = 256
 MAX_GENERATE_LEN = 250
 MAX_REPLY_LEN = 1024
 
-CHAT_SAMPLER = SAMPLER("typical", 1.0, 0.8, 0.2, 0.0, 0.0)
+CHAT_SAMPLER = SAMPLER("typical", 1.0, 0.8, 0.2, 0.1, 0.1)
 INSTRUCT_SAMPLER = SAMPLER("nucleus", 0.8, 0.5, 0.95, 0.1, 0.1)
 
 args = types.SimpleNamespace()
@@ -402,10 +402,11 @@ def on_message(user: User, message: str, alt=False) -> str:
                 occurrence[n] * sampler.count_penalty
 
         token = sampler.sample(out)
-        if token not in occurrence:
-            occurrence[token] = 1
-        else:
-            occurrence[token] += 1
+        if token != END_OF_LINE:
+            if token not in occurrence:
+                occurrence[token] = 1
+            else:
+                occurrence[token] += 1
 
         tokens = [END_OF_LINE, END_OF_LINE] if token == END_OF_TEXT else [token]
         model_tokens += tokens
