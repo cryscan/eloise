@@ -63,7 +63,7 @@ args = types.SimpleNamespace()
 # args.strategy = 'cuda fp16 *20 -> cpu fp32'
 args.strategy = 'cuda fp16i8 *16 -> cuda fp16'
 
-args.MODEL_NAME = '/root/autodl-tmp/models/RWKV-4-Raven-14B-v10-Eng99%-Other1%-20230427-ctx8192'
+args.MODEL_NAME = '/root/autodl-tmp/models/RWKV-4-Raven-14B-v11x-Eng99%-Other1%-20230501-ctx8192'
 # args.MODEL_NAME = '/root/autodl-tmp/models/RWKV-4-Raven-7B-v11x-Eng99%-Other1%-20230429-ctx8192'
 
 args.STATE_DUMP_NAME = 'states/14b.state'
