@@ -64,8 +64,10 @@ args = types.SimpleNamespace()
 args.strategy = 'cuda fp16i8 *16 -> cuda fp16'
 
 args.MODEL_NAME = '/root/autodl-tmp/models/RWKV-4-Raven-14B-v10-Eng99%-Other1%-20230427-ctx8192'
+# args.MODEL_NAME = '/root/autodl-tmp/models/RWKV-4-Raven-7B-v11x-Eng99%-Other1%-20230429-ctx8192'
 
 args.STATE_DUMP_NAME = 'states/14b.state'
+# args.STATE_DUMP_NAME = 'states/7b.state'
 
 
 class GenerateMode(Enum):
@@ -233,8 +235,6 @@ def on_generate(user: User, message: str, mode=GenerateMode.GENERATE) -> str:
     message = message.replace("\r\n", '\n').replace('\\n', '\n').strip()
     if len(message) > MAX_MESSAGE_LEN:
         return f"Your message is too long! (max {MAX_MESSAGE_LEN} tokens)"
-    if len(message) == 0:
-        return ""
     print(f"{user.nickname}({user.id}): {message}")
 
     reply: str = ""
@@ -256,7 +256,8 @@ def on_generate(user: User, message: str, mode=GenerateMode.GENERATE) -> str:
 
             message = sampler.parse(message)
             save_params(user.id, "gen", mode=active_mode, sampler=sampler)
-        except:
+        except Exception as e:
+            print(e)
             return reply
 
     print(str(sampler))
@@ -339,7 +340,7 @@ def on_message(user: User, message: str, alt=False) -> str:
         return f"Your message is too long! (max {MAX_MESSAGE_LEN} tokens)"
     if len(message) == 0:
         return ""
-    print(message)
+    print(f"{user.nickname}({user.id}): {message}")
 
     # lang = langid.classify(message)[0]
     reply: str = ""
@@ -408,7 +409,7 @@ def on_message(user: User, message: str, alt=False) -> str:
             else:
                 occurrence[token] += 1
 
-        tokens = [END_OF_LINE, END_OF_LINE] if token == END_OF_TEXT else [token]
+        tokens = tokenizer.encode(scenario.end) if token == END_OF_TEXT else [token]
         model_tokens += tokens
         out, model_state = run_rnn(tokens, model_state)
 
@@ -420,7 +421,7 @@ def on_message(user: User, message: str, alt=False) -> str:
         reply = tokenizer.decode(model_tokens[begin:])
         reply = reply.replace("\r\n", '\n').replace('\\n', '\n')
 
-        if '\n\n' in reply:
+        if scenario.end in reply:
             break
 
         # State recovery
@@ -429,7 +430,7 @@ def on_message(user: User, message: str, alt=False) -> str:
             if idx < 0:
                 return idx, reply, out, model_state, model_tokens
 
-            reply = f" {reply[:idx].strip()}\n\n"
+            reply = f" {reply[:idx].strip()}{scenario.end}"
             tokens = tokenizer.encode(reply)
             out, model_state, model_tokens = \
                 load_all_state(user.id, "chat_pre")

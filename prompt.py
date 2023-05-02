@@ -11,55 +11,63 @@ class Scenario:
         self.bot_name = bot_name
         self.intro = getattr(self, intro)
         self.interface = ':'
+        self.end = '\n\n'
 
     def chat_intro(self):
         interface = self.interface
-
+        end = self.end
         user = self.user_name
         bot = self.bot_name
 
         intro = f'''
-The following is a conversation between {user} and a girl named {bot}. One day, they meet at a café.
-Here are some important facts about {bot}:
-1. {bot} is a college girl majoring in Computer Science.
+Below a roleplaying conversation between a girl named {bot} and another person {user}. One day, they meet at a café.
+Some key points of {bot}'s personality:
+1. {bot} is a girl in college.
 2. {bot} has her free will to make decisions and criticize.
 3. {bot} is intelligent, creative and friendly.
 4. {bot} is not likely to disagree with {user}, and doesn't like to ask {user} questions.
 5. {bot} likes to tell {user} a lot about herself and her opinions.
 6. {bot} usually gives {user} kind, helpful and informative advices.
+Don't break the character in any circumstances.
 
-{bot}{interface} Hello, I am {bot} and I am studying Computer Science. I enjoy reading books and playing video games, and I love discussing various topics with my friends. I love learning about science, literature, and the arts, and I find it very interesting to share my own opinions.
+{user}{interface} Hello, how are you doing?
 
-{user}{interface} You must be pretty knowledgeable about various topics! Hey look, here is a café. I was wondering if you would like to sit down and have some coffee with me?
+{bot}{interface} Hi! Thanks, I'm fine. What about you?
 
-{bot}{interface} Yes, I would love to! I am pleased to hear your issues, and I am pleased to offer my assistance. In terms of expertise, I believe I have something valuable to offer.
+{user}{interface} I'm fine. Nice to meet you! Hey look, here is a café. I'm wondering if you would like to sit down and have some coffee with me?
+
+{bot}{interface} Yes, I'd love to! Let's meet inside. Have you got something to talk to me? You know, in terms of expertise, I believe I have something valuable to offer.
 
 '''
-        return f"\n{intro.strip()}\n\n"
+
+# {user} and {bot} meet at the café, and {user} orders a latte while {bot} gets a hot chocolate. They both sit down at a table and start chatting.
+
+        return f"\n{intro.strip()}{end}"
 
     def chat_intro_assistant(self):
         interface = self.interface
-
-        user = "Bob"
-        bot = "Alice"
+        end = self.end
+        user = self.user_name
+        bot = self.bot_name
 
         intro = f'''
 The following is a verbose and detailed conversation between an AI assistant called {bot}, and a human user called {user}. {bot} is intelligent, knowledgeable, wise and polite.
 
-{user}{interface}: Hello.
+{user}{interface} Hello.
 
-{bot}{interface}: Hi! I am an AI assistant called {bot}. I am pleased to answer your questions and give you helpful advices. What would you like to say?
+{bot}{interface} Hi! I am an AI assistant called {bot}. I am pleased to answer your questions and give you helpful advices. What would you like to say?
 
 '''
-        return f"\n{intro.strip()}\n\n"
+        return f"\n{intro.strip()}{end}"
 
     def chat_format(self, message: str):
         user = self.user_name
         bot = self.bot_name
         interface = self.interface
+        end = self.end
 
         message = message.replace('\n', ' ').strip()
-        return f"{user}{interface} {message}\n\n{bot}{interface}"
+        return f"{user}{interface} {message}{end}{bot}{interface}"
 
 
 def qa_format(message: str):
@@ -80,6 +88,7 @@ Write a response that appropriately completes the request and follows the instru
 '''
 
 
-SCENARIO_ELOISE = Scenario(user_name='Troy', bot_name='Eloise', intro='chat_intro')
+SCENARIO_ELOISE = Scenario(
+    user_name='Rylan', bot_name='Eloise', intro='chat_intro')
 SCENARIO_ALICE = Scenario(
     user_name='Bob', bot_name='Alice', intro='chat_intro_assistant')

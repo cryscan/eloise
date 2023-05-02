@@ -107,8 +107,10 @@ def commands(user: User, message, enable_chat=False, is_private=False):
         prompt = message[translate_match.end():]
         reply = chat.on_translate(user, prompt)
     elif retry_match:
+        prompt = message[retry_match.end():]
         reply = chat.on_generate(user, prompt, mode=GenerateMode.RETRY)
     elif more_match:
+        prompt = message[more_match.end():]
         reply = chat.on_generate(user, prompt, mode=GenerateMode.MORE)
     elif gen_match:
         prompt = message[gen_match.end():]
