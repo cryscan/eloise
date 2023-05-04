@@ -94,6 +94,31 @@ def run_rnn(tokens, model_state=None):
     return out, model_state
 
 
+def state_to_cuda(state):
+    if state:
+        for i in range(model.args.n_layer):
+            dd = model.strategy[i]
+            dev = dd.device
+            atype = dd.atype
+            state[i*5+0] = state[i*5+0].to(atype).to(dev)
+            state[i*5+1] = state[i*5+1].to(torch.float).to(dev)
+            state[i*5+2] = state[i*5+2].to(torch.float).to(dev)
+            state[i*5+3] = state[i*5+3].to(torch.float).to(dev)
+            state[i*5+4] = state[i*5+4].to(atype).to(dev)
+
+
+def state_to_cpu(state):
+    if state:
+        for i in range(model.args.n_layer):
+            dd = model.strategy[i]
+            atype = dd.atype
+            state[i*5+0] = state[i*5+0].to(atype).cpu()
+            state[i*5+1] = state[i*5+1].to(torch.float).cpu()
+            state[i*5+2] = state[i*5+2].to(torch.float).cpu()
+            state[i*5+3] = state[i*5+3].to(torch.float).cpu()
+            state[i*5+4] = state[i*5+4].to(atype).cpu()
+
+
 all_state = {}
 
 
@@ -109,6 +134,7 @@ def save_all_state(uid, channel, last_out, model_state, model_tokens):
     all_state[n]['out'] = last_out
     all_state[n]['state'] = copy.deepcopy(model_state)
     all_state[n]['token'] = copy.deepcopy(model_tokens)
+    state_to_cpu(all_state[n]['state'])
 
 
 def load_all_state(uid, channel):
@@ -116,17 +142,7 @@ def load_all_state(uid, channel):
     model_state = copy.deepcopy(all_state[n]['state'])
     model_tokens = copy.deepcopy(all_state[n]['token'])
 
-    if model_state:
-        for i in range(model.args.n_layer):
-            dd = model.strategy[i]
-            dev = dd.device
-            atype = dd.atype
-            model_state[i*5+0] = model_state[i*5+0].to(atype).to(dev)
-            model_state[i*5+1] = model_state[i*5+1].to(torch.float).to(dev)
-            model_state[i*5+2] = model_state[i*5+2].to(torch.float).to(dev)
-            model_state[i*5+3] = model_state[i*5+3].to(torch.float).to(dev)
-            model_state[i*5+4] = model_state[i*5+4].to(atype).to(dev)
-
+    state_to_cuda(model_state)
     return all_state[n]['out'], model_state, model_tokens
 
 
@@ -409,7 +425,8 @@ def on_message(user: User, message: str, alt=False) -> str:
             else:
                 occurrence[token] += 1
 
-        tokens = tokenizer.encode(scenario.end) if token == END_OF_TEXT else [token]
+        tokens = tokenizer.encode(
+            scenario.end) if token == END_OF_TEXT else [token]
         model_tokens += tokens
         out, model_state = run_rnn(tokens, model_state)
 
