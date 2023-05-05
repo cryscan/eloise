@@ -37,7 +37,7 @@ except:
     QQ = ""
 
 IMAGE_THRESHOLD = 1024
-IMAGE_WIDTH = 400
+IMAGE_WIDTH = 512
 
 CHAT_HELP_COMMAND = "`-c, -chat <text>`"
 PRIVATE_HELP_COMMAND = "`<text>`"
@@ -167,19 +167,16 @@ def post_data():
             logger.info(reply)
             received_messages.add(message_id)
             if len(reply) > IMAGE_THRESHOLD or reply.count('\n') > 2:
-                options = {
-                    'width': IMAGE_WIDTH,
-                    'disable-smart-width': '',
-                    'font-family': 'SimSun',
-                }
+                options = {'font-family': 'SimSun'}
                 html = markdown.markdown(
-                    reply, extensions=['extra', 'nl2br', 'sane_lists'], options=options)
+                    reply, extensions=['extra', 'nl2br', 'sane_lists', 'codehilite'], options=options)
 
                 file = f"./images/{user.id} {datetime.datetime.now().isoformat()}.png"
                 file = file.replace(' ', '-')
-
                 path = os.path.abspath(file)
-                imgkit.from_string(html, file)
+                options = {'width': IMAGE_WIDTH}
+                imgkit.from_string(
+                    html, file, css='styles.css', options=options)
                 requests.get(
                     f"http://127.0.0.1:5700/send_private_msg?user_id={user.id}&message=[CQ:image,file=file:///{path}]")
             else:
@@ -202,19 +199,16 @@ def post_data():
             logger.info(reply)
             received_messages.add(message_id)
             if len(reply) > IMAGE_THRESHOLD or reply.count('\n') > 2:
-                options = {
-                    'width': IMAGE_WIDTH,
-                    'disable-smart-width': '',
-                    'font-family': 'SimSun',
-                }
+                options = {'font-family': 'SimSun'}
                 html = markdown.markdown(
-                    reply, extensions=['extra', 'nl2br', 'sane_lists'], options=options)
+                    reply, extensions=['extra', 'nl2br', 'sane_lists', 'codehilite'], options=options)
 
                 file = f"./images/{user.id} {datetime.datetime.now().isoformat()}.png"
                 file = file.replace(' ', '-')
-
                 path = os.path.abspath(file)
-                imgkit.from_string(html, file)
+                options = {'width': IMAGE_WIDTH}
+                imgkit.from_string(
+                    html, file, css='styles.css', options=options)
                 requests.get(
                     f"http://127.0.0.1:5700/send_group_msg?group_id={group_id}&message=[CQ:reply,id={message_id}][CQ:image,file=file:///{path}]")
             else:
