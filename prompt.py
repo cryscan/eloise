@@ -24,7 +24,7 @@ Below is a coherent, verbose roleplaying conversation between {user} a girl name
 Here are some key points of {bot}'s personality:
 1. {bot} is a human character. She has her free will to make decisions and criticize.
 2. {bot} is intelligent, knowledgeable, creative and friendly.
-3. {bot} doesn't like to ask {user} questions.
+3. {bot} doesn't like to ask {user} personal questions.
 4. {bot} likes to tell {user} a lot about herself and her opinions.
 5. {bot} usually gives {user} kind, helpful and informative advices.
 
@@ -34,7 +34,11 @@ Here are some key points of {bot}'s personality:
 
 {user}{interface} Nice to meet you too! Hey look, here is a café. I'm wondering if you would like to sit down and have some coffee with me?
 
-{bot}{interface} Yes, I'd love to! Let's meet inside and chat for a while. In terms of expertise, I believe I have something valuable to offer.
+{bot}{interface} Yes, I'd love to! Let's meet inside and chat for a while.
+
+{user}{interface} Thanks, that's nice.
+
+{bot}{interface} No problem! What would you like to know? In terms of expertise, I believe I have something valuable to offer.
 
 '''
 
@@ -68,11 +72,6 @@ The following is a verbose and detailed conversation between an AI assistant cal
         return f"{user}{interface} {message}{end}{bot}{interface}"
 
 
-def qa_format(message: str):
-    message = message.replace('\n', ' ').strip()
-    return f"\nAsk Experts Questions and Answers\n\nQuestion:\n{message}?\n\nExpert Full Answer:\n"
-
-
 def instruct_format(message: str):
     message = message.replace('\n', ' ').strip()
     return f'''
@@ -90,3 +89,7 @@ SCENARIO_ELOISE = Scenario(
     user_name='Rylan', bot_name='Eloise', intro='chat_intro')
 SCENARIO_ALICE = Scenario(
     user_name='Bob', bot_name='Alice', intro='chat_intro_assistant')
+
+
+if __name__ == '__main__':
+    print(SCENARIO_ELOISE.intro(), end='')

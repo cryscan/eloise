@@ -79,7 +79,6 @@ def commands(user: User, message, enable_chat=False, is_private=False):
     retry_match = re.match("\-(retry|e)", message)
     more_match = re.match("\-m(ore)?", message)
     gen_match = re.match("\-g(en)?\s+", message)
-    qa_match = re.match("\-qa\s+", message)
     inst_match = re.match("\-i(nst)?\s+", message)
 
     reset_match = re.match("\-(reset|s)", message)
@@ -114,10 +113,7 @@ def commands(user: User, message, enable_chat=False, is_private=False):
         reply = chat.on_generate(user, prompt, mode=GenerateMode.MORE)
     elif gen_match:
         prompt = message[gen_match.end():]
-        reply = chat.on_generate(user, prompt, prompt)
-    elif enable_chat and qa_match:
-        prompt = message[qa_match.end():]
-        reply = chat.on_generate(user, prompt, mode=GenerateMode.QUESTION)
+        reply = chat.on_generate(user, prompt, mode=GenerateMode.GENERATE)
     elif enable_chat and inst_match:
         prompt = message[inst_match.end():]
         reply = chat.on_generate(user, prompt, mode=GenerateMode.INSTRUCT)

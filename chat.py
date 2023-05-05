@@ -73,9 +73,8 @@ args.STATE_DUMP_NAME = 'states/14b.state'
 class GenerateMode(Enum):
     GENERATE = 0
     INSTRUCT = 1
-    QUESTION = 2
-    RETRY = 3
-    MORE = 4
+    RETRY = 2
+    MORE = 3
 
 
 # Load Model
@@ -99,24 +98,22 @@ def state_to_cuda(state):
         for i in range(model.args.n_layer):
             dd = model.strategy[i]
             dev = dd.device
-            atype = dd.atype
-            state[i*5+0] = state[i*5+0].to(atype).to(dev)
-            state[i*5+1] = state[i*5+1].to(torch.float).to(dev)
-            state[i*5+2] = state[i*5+2].to(torch.float).to(dev)
-            state[i*5+3] = state[i*5+3].to(torch.float).to(dev)
-            state[i*5+4] = state[i*5+4].to(atype).to(dev)
+            state[i*5+0] = state[i*5+0].to(dev)
+            state[i*5+1] = state[i*5+1].to(dev)
+            state[i*5+2] = state[i*5+2].to(dev)
+            state[i*5+3] = state[i*5+3].to(dev)
+            state[i*5+4] = state[i*5+4].to(dev)
 
 
 def state_to_cpu(state):
     if state:
         for i in range(model.args.n_layer):
             dd = model.strategy[i]
-            atype = dd.atype
-            state[i*5+0] = state[i*5+0].to(atype).cpu()
-            state[i*5+1] = state[i*5+1].to(torch.float).cpu()
-            state[i*5+2] = state[i*5+2].to(torch.float).cpu()
-            state[i*5+3] = state[i*5+3].to(torch.float).cpu()
-            state[i*5+4] = state[i*5+4].to(atype).cpu()
+            state[i*5+0] = state[i*5+0].cpu()
+            state[i*5+1] = state[i*5+1].cpu()
+            state[i*5+2] = state[i*5+2].cpu()
+            state[i*5+3] = state[i*5+3].cpu()
+            state[i*5+4] = state[i*5+4].cpu()
 
 
 all_state = {}
@@ -258,7 +255,7 @@ def on_generate(user: User, message: str, mode=GenerateMode.GENERATE) -> str:
     if mode not in [GenerateMode.RETRY, GenerateMode.MORE]:
         if mode == GenerateMode.GENERATE:
             sampler = copy.deepcopy(CHAT_SAMPLER)
-        else:
+        elif mode == GenerateMode.INSTRUCT:
             sampler = copy.deepcopy(INSTRUCT_SAMPLER)
 
         message = sampler.parse(message)
@@ -289,11 +286,6 @@ def on_generate(user: User, message: str, mode=GenerateMode.GENERATE) -> str:
             save_all_state(user.id, "gen_0", out, model_state, model_tokens)
         except:
             return reply
-    elif mode == GenerateMode.QUESTION:
-        message = prompt.qa_format(message)
-        model_tokens = tokenizer.encode(message)
-        out, model_state = run_rnn(model_tokens)
-        save_all_state(user.id, "gen_0", out, model_state, model_tokens)
     elif mode == GenerateMode.INSTRUCT:
         message = prompt.instruct_format(message)
         model_tokens = tokenizer.encode(message)
@@ -311,7 +303,7 @@ def on_generate(user: User, message: str, mode=GenerateMode.GENERATE) -> str:
     begin = len(model_tokens)
     end = begin
     for i in range(MAX_GENERATE_LEN):
-        if active_mode not in [GenerateMode.QUESTION, GenerateMode.INSTRUCT]:
+        if active_mode == GenerateMode.GENERATE:
             out[0] = DONT_OUTPUT
         for n in occurrence:
             out[n] -= sampler.presence_penalty + \
