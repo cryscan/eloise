@@ -1,4 +1,5 @@
 torch==1.11.0+cu113
+flask
 langid
 translate
 imgkit
