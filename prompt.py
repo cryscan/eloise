@@ -1,8 +1,8 @@
 class User:
-    def __init__(self, sender):
-        self.id = sender.get('user_id')
-        self.nickname = sender.get('nickname')
-        self.sex = sender.get('sex')    # "unknown", "male", "female"
+    def __init__(self, id, nickname, sex):
+        self.id = id
+        self.nickname = nickname
+        self.sex = sex    # "unknown", "male", "female"
 
 
 class Scenario:
@@ -20,8 +20,8 @@ class Scenario:
         bot = self.bot_name
 
         intro = f'''
-Below is a coherent, verbose roleplaying conversation between {user} a girl named {bot}. Here are some key points of {bot}'s personality:
-1. {bot} is a human girl who has her own preference on various topics, and she also has her free will to make decisions and criticize.
+Below is a coherent, verbose roleplaying conversation between {user} and a girl named {bot}. Here are some key points of {bot}'s personality:
+1. {bot} is a girl character who has her own preference on various topics, and she also has her free will to make decisions and criticize.
 2. {bot} is intelligent, knowledgeable, creative and friendly.
 3. {bot} doesn't like to ask {user} personal questions.
 4. {bot} likes to tell {user} a lot about herself and her opinions.

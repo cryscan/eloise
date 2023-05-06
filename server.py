@@ -138,23 +138,25 @@ def commands(user: User, message, enable_chat=False, is_private=False):
 
 
 @app.route('/', methods=["POST"])
-def post_data():
-    json = request.get_json()
-    type = json.get('message_type')
-    message = json.get('raw_message')
-    message_id = json.get('message_id')
-    sender = json.get('sender')
+def handle_post():
+    try:
+        json = request.get_json()
+        type = json['message_type']
+        message = json['raw_message']
+        message_id = json['message_id']
+        sender = json['sender']
+        user = User(sender['user_id'], sender['nickname'], sender['sex'])
+    except:
+        return 'OK'
 
+    if user in banned_users:
+        return 'OK'
     if message_id in received_messages:
         return 'OK'
     if len(received_messages) > 500:
         received_messages.clear()
 
     if type == 'private':
-        user = User(sender)
-        if user in banned_users:
-            return 'OK'
-
         matched, prompt, reply = commands(
             user, message, enable_chat=True, is_private=True)
 
@@ -179,14 +181,13 @@ def post_data():
                 requests.get(
                     f"http://127.0.0.1:5700/send_private_msg?user_id={user.id}&message={quote(reply)}")
     elif type == 'group':
-        group_id = int(json.get('group_id'))
+        try:
+            group_id = int(json['group_id'])
+        except:
+            return 'OK'
         if group_id in banned_groups:
             return 'OK'
         enable_chat = group_id not in non_chat_groups
-
-        user = User(sender)
-        if user.id in banned_users:
-            return 'OK'
 
         matched, prompt, reply = commands(
             user, message, enable_chat, is_private=False)
