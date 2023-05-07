@@ -42,6 +42,7 @@ tokenizer = TOKENIZER("20B_tokenizer.json")
 DONT_OUTPUT = -float('inf')
 END_OF_TEXT = 0
 END_OF_LINE = 187
+END_OF_LINE_DOUBLE = 535
 
 MAX_MESSAGE_LEN = 2048
 CHUNK_LEN = 256
@@ -108,7 +109,6 @@ def state_to_cuda(state):
 def state_to_cpu(state):
     if state:
         for i in range(model.args.n_layer):
-            dd = model.strategy[i]
             state[i*5+0] = state[i*5+0].cpu()
             state[i*5+1] = state[i*5+1].cpu()
             state[i*5+2] = state[i*5+2].cpu()
@@ -158,6 +158,13 @@ def clear_cache():
     torch.cuda.empty_cache()
 
 
+def fix_tokens(tokens):
+    if len(tokens) > 0 and tokens[-1] == END_OF_LINE_DOUBLE:
+        tokens = tokens[:-1] + [END_OF_LINE, END_OF_LINE]
+        # print("Tokens fixed")
+    return tokens
+
+
 def init_run():
     try:
         recover_all_state()
@@ -166,12 +173,14 @@ def init_run():
         print("Loading chat intro...")
         scenario = SCENARIO_ELOISE
         tokens = tokenizer.encode(scenario.intro())
+        tokens = fix_tokens(tokens)
         out, state = run_rnn(tokens)
         save_all_state("", scenario.intro.__name__, out, state, tokens)
 
         print("Loading chat intro...")
         scenario = SCENARIO_ALICE
         tokens = tokenizer.encode(scenario.intro())
+        tokens = fix_tokens(tokens)
         out, state = run_rnn(tokens)
         save_all_state("", scenario.intro.__name__, out, state, tokens)
 
@@ -417,8 +426,7 @@ def on_message(user: User, message: str, alt=False) -> str:
             else:
                 occurrence[token] += 1
 
-        tokens = tokenizer.encode(
-            scenario.end) if token == END_OF_TEXT else [token]
+        tokens = [END_OF_LINE, END_OF_LINE] if token == END_OF_TEXT else [token]
         model_tokens += tokens
         out, model_state = run_rnn(tokens, model_state)
 
@@ -430,7 +438,7 @@ def on_message(user: User, message: str, alt=False) -> str:
         reply = tokenizer.decode(model_tokens[begin:])
         reply = reply.replace("\r\n", '\n').replace('\\n', '\n')
 
-        if scenario.end in reply:
+        if '\n\n' in reply:
             break
 
         # State recovery
@@ -439,8 +447,9 @@ def on_message(user: User, message: str, alt=False) -> str:
             if idx < 0:
                 return idx, reply, out, model_state, model_tokens
 
-            reply = f" {reply[:idx].strip()}{scenario.end}"
+            reply = f" {reply[:idx].strip()}\n\n"
             tokens = tokenizer.encode(reply)
+            tokens = fix_tokens(tokens)
             out, model_state, model_tokens = \
                 load_all_state(user.id, "chat_pre")
 

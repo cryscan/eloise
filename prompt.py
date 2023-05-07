@@ -11,11 +11,9 @@ class Scenario:
         self.bot_name = bot_name
         self.intro = getattr(self, intro)
         self.interface = ':'
-        self.end = '\n\n'
 
     def chat_intro(self):
         interface = self.interface
-        end = self.end
         user = self.user_name
         bot = self.bot_name
 
@@ -44,11 +42,10 @@ One day, {user} and {bot} meet at a café.
 
 # {user} and {bot} meet at the café, and {user} orders a latte while {bot} gets a hot chocolate. They both sit down at a table and start chatting.
 
-        return f"\n{intro.strip()}{end}"
+        return f"\n{intro.strip()}\n\n"
 
     def chat_intro_assistant(self):
         interface = self.interface
-        end = self.end
         user = self.user_name
         bot = self.bot_name
 
@@ -60,16 +57,15 @@ The following is a verbose and detailed conversation between an AI assistant cal
 {bot}{interface} Hi! I am an AI assistant called {bot}. I am pleased to answer your questions and give you helpful advices. What would you like to say?
 
 '''
-        return f"\n{intro.strip()}{end}"
+        return f"\n{intro.strip()}\n\n"
 
     def chat_format(self, message: str):
         user = self.user_name
         bot = self.bot_name
         interface = self.interface
-        end = self.end
 
         message = message.replace('\n', ' ').strip()
-        return f"{user}{interface} {message}{end}{bot}{interface}"
+        return f"{user}{interface} {message}\n\n{bot}{interface}"
 
 
 def instruct_format(message: str):
