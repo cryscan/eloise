@@ -12,6 +12,93 @@ current_path = os.path.dirname(os.path.abspath(__file__))
 
 ########################################################################################################
 
+####lora merge function
+from collections import OrderedDict
+from typing import Dict
+import typing
+def get_filter_keys_and_merge_coef(layer_filter):
+    if layer_filter:
+        layers = []
+        layer_coef = {}
+        for layer in layer_filter.split(' '):
+            if '*' in layer:
+                coef,_,layer = layer.partition('*')
+                coef = float(coef)
+            else:
+                coef = 1 
+            if layer.isdecimal():
+                layers.append(int(layer))
+                layer_coef[int(layer)]=coef
+            elif '-' in layer:
+                start,_,end = layer.partition('-')
+                start,end = int(start),int(end)
+                layers.extend(range(start,end+1))
+                for l in range(start,end+1):
+                    layer_coef[l] = coef
+            else:
+                raise NotImplementedError("layer_filter Not implemented:",layer_filter)
+        layers = sorted(set(layers))
+        layer_prefixes = tuple(f"blocks.{l}." for l in layers)
+        def filter_keys(keys): 
+            new_keys = []
+            for key in keys:
+                if key.startswith("blocks."): #过滤掉blocks开头，且不在允许范围内的权重
+                    if not key.startswith(layer_prefixes):
+                        continue
+                new_keys.append(key)
+            return new_keys
+        def merge_coef(key):
+            if key.startswith('blocks.') and int(key.split('.')[1]) in layer_coef:
+                return layer_coef[int(key.split('.')[1])]
+            else:
+                return 1
+    else:
+        def filter_keys(keys):
+            return keys
+        def merge_coef(key):
+            return 1
+    return filter_keys,merge_coef
+
+def lora_merge(base_model,lora,lora_alpha,device="cuda",layer_filter=None,):
+    print(f"Loading LoRA: {lora}")
+    print(f"LoRA alpha={lora_alpha}, layer_filter={layer_filter}")
+    filter_keys,merge_coef = get_filter_keys_and_merge_coef(layer_filter)
+    w: Dict[str, torch.Tensor] = torch.load(base_model, map_location='cpu')
+    # merge LoRA-only slim checkpoint into the main weights
+    w_lora: Dict[str, torch.Tensor] = torch.load(lora, map_location='cpu')
+    # pdb.set_trace() #DEBUG
+    for k in filter_keys(w_lora.keys()): #处理time_mixing之类的融合
+        w[k] = w_lora[k]
+    output_w: typing.OrderedDict[str, torch.Tensor] = OrderedDict()
+    # merge LoRA weights
+    keys = list(w.keys())
+    for k in keys:
+        if k.endswith('.weight'):
+            prefix = k[:-len('.weight')]
+            lora_A = prefix + '.lora_A'
+            lora_B = prefix + '.lora_B'
+            if lora_A in keys:
+                assert lora_B in keys
+                print(f'merging {lora_A} and {lora_B} into {k}')
+                assert w[lora_B].shape[1] == w[lora_A].shape[0]
+                lora_r = w[lora_B].shape[1]
+                w[k] = w[k].to(device=device)
+                w[lora_A] = w[lora_A].to(device=device)
+                w[lora_B] = w[lora_B].to(device=device)
+                w[k] += w[lora_B] @ w[lora_A] * (lora_alpha / lora_r) * merge_coef(k)
+                output_w[k] = w[k].to(device='cpu', copy=True)
+                del w[k]
+                del w[lora_A]
+                del w[lora_B]
+                continue
+
+        if 'lora' not in k:
+            print(f'retaining {k}')
+            output_w[k] = w[k].clone()
+            del w[k]
+    return output_w
+####
+
 if os.environ.get('RWKV_JIT_ON') != '0':
     os.environ["RWKV_JIT_ON"] = '1'
     MyModule = torch.jit.ScriptModule
@@ -75,7 +162,7 @@ else:
 ########################################################################################################
 
 class RWKV(MyModule):
-    def __init__(self, model, strategy, verbose = True, convert_and_save_and_exit = None):
+    def __init__(self, model, strategy, verbose = True, convert_and_save_and_exit = None, lora=None,lora_alpha=0,lora_layer_filter=None):
         super().__init__()
         if verbose:
             prxxx = lambda *args, **kwargs: print(*args, **kwargs)
@@ -101,7 +188,12 @@ class RWKV(MyModule):
             args.MODEL_NAME += '.pth'
         prxxx(f'Loading {args.MODEL_NAME} ...')
         with torch.no_grad():
-            self.w = torch.load(args.MODEL_NAME, map_location='cpu') # load model to CPU first
+            if lora:
+                self.w = lora_merge(base_model=args.MODEL_NAME,lora=lora,
+                    lora_alpha=lora_alpha,layer_filter=lora_layer_filter,
+                    device=('cuda' if 'cuda' in strategy else 'cpu'))
+            else:
+                self.w = torch.load(args.MODEL_NAME, map_location='cpu') # load model to CPU first
             gc.collect()
             w = self.w
 
