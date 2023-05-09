@@ -217,6 +217,7 @@ def on_reset(user: User, scenario: Scenario, sampler: SAMPLER) -> str:
     out, model_state, model_tokens = load_all_state(
         '', scenario.intro.__name__)
     scenario = copy.deepcopy(scenario)
+    sampler = copy.deepcopy(sampler)
 
     save_all_state(user.id, "chat", out, model_state, model_tokens)
     save_params(user.id, "chat", scenario=scenario, sampler=sampler)
@@ -233,7 +234,7 @@ def on_show_params(user: User, message: str) -> str:
         save_params(user.id, "chat", scenario=scenario, sampler=sampler)
     except:
         sampler = copy.deepcopy(CHAT_SAMPLER)
-        scenario = SCENARIO_ELOISE
+        scenario = copy.deepcopy(SCENARIO_ELOISE)
         message = sampler.parse(message)
         save_params(user.id, "chat", scenario=scenario, sampler=sampler)
     return str(sampler)
