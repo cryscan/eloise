@@ -84,14 +84,14 @@ def commands(user: User, message, enable_chat=False, is_private=False):
     params_match = re.match("\-p(arams)?", message)
 
     translate_match = re.match("\-tr", message)
-    retry_match = re.match("\-(retry|e)\s*", message)
-    more_match = re.match("\-m(ore)?\s*", message)
+    retry_match = re.match("\-(retry|e)", message)
+    more_match = re.match("\-m(ore)?", message)
     gen_match = re.match("\-g(en)?\s+", message)
     inst_match = re.match("\-i(nst)?\s+", message)
 
-    reset_match = re.match("\-(reset|s)\s*", message)
-    reset_bot_match = re.match("\-(bot|b)\s*", message)
-    alt_match = re.match("\-alt\s*", message)
+    reset_match = re.match("\-(reset|s)", message)
+    reset_bot_match = re.match("\-(bot|b)", message)
+    alt_match = re.match("\-alt", message)
     chat_match = re.match("\-c(hat)?\s+", message)
     at_match = re.match(f"\[CQ:at,qq={QQ}\]", message)
 
