@@ -88,20 +88,16 @@ class SAMPLER():
         af_match = re.search("(\-af\s*=\s*)(\-?\d+(.\d*)?)\s*", input)
         ap_match = re.search("(\-ap\s*=\s*)(\-?\d+(.\d*)?)\s*", input)
 
-        if nucleus_match:
-            self.sample = self.sample_nucleus
-            input = input.replace(nucleus_match.group(0), "")
-        if typical_match:
-            self.sample = self.sample_typical
-            input = input.replace(typical_match.group(0), "")
         if temp_match:
             self.temp = float(temp_match.group(2))
             input = input.replace(temp_match.group(0), "")
         if top_p_match:
             self.top_p = float(top_p_match.group(2))
+            self.sample = self.sample_nucleus
             input = input.replace(top_p_match.group(0), "")
         if tau_match:
             self.tau = float(tau_match.group(2))
+            self.sample = self.sample_typical
             input = input.replace(tau_match.group(0), "")
         if af_match:
             self.count_penalty = float(af_match.group(2))
@@ -109,6 +105,12 @@ class SAMPLER():
         if ap_match:
             self.presence_penalty = float(ap_match.group(2))
             input = input.replace(ap_match.group(0), "")
+        if nucleus_match:
+            self.sample = self.sample_nucleus
+            input = input.replace(nucleus_match.group(0), "")
+        if typical_match:
+            self.sample = self.sample_typical
+            input = input.replace(typical_match.group(0), "")
 
         def clamp(n, minimum, maximum):
             return max(minimum, min(n, maximum))

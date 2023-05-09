@@ -213,11 +213,12 @@ def translate_message(message, from_lang, to_lang):
     return translated
 
 
-def on_reset(user: User, scenario: Scenario, sampler: SAMPLER) -> str:
+def on_reset(user: User, message: str, scenario: Scenario, sampler: SAMPLER) -> str:
     out, model_state, model_tokens = load_all_state(
         '', scenario.intro.__name__)
     scenario = copy.deepcopy(scenario)
     sampler = copy.deepcopy(sampler)
+    message = sampler.parse(message)
 
     save_all_state(user.id, "chat", out, model_state, model_tokens)
     save_params(user.id, "chat", scenario=scenario, sampler=sampler)

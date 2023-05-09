@@ -21,8 +21,8 @@ Model: <model>
 ### Parameters
 | Param             | Description                        | Default (Chat Mode) | Default (Bot/Instruction Mode) |
 | ----------------- | ---------------------------------- | ------------------- | ------------------------------ |
-| `-nucleus`        | Switch to nucleus sampling         |                     | Yes                            |
-| `-typical`        | Switch to typical sampling         | Yes                 |                                |
+| `-nucleus`        | Switch to nucleus sampling         | <chat_nucleus>      | <inst_nucleus>                 |
+| `-typical`        | Switch to typical sampling         | <chat_typical>      | <inst_typical>                 |
 | `-temp=<number>`  | Higher temperature → more verbose  | <chat_temp>         | <inst_temp>                    |
 | `-top_p=<number>` | Lower top p → more accurate answer | <chat_top_p>        | <inst_top_p>                   |
 | `-tau=<number>`   | Lower tau → more human-like answer | <chat_tau>          | <inst_tau>                     |

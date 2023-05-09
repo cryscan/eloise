@@ -37,7 +37,7 @@ except:
     QQ = ""
 
 IMAGE_THRESHOLD = 1024
-IMAGE_WIDTH = 512
+IMAGE_WIDTH = 600
 
 CHAT_HELP_COMMAND = "`-c, -chat <text>`"
 PRIVATE_HELP_COMMAND = "`<text>`"
@@ -48,6 +48,10 @@ with open("./help.md", 'r') as file:
     HELP_MESSAGE = file.read()
     HELP_MESSAGE = HELP_MESSAGE.replace('<model>', model_name)
     HELP_MESSAGE = HELP_MESSAGE.replace(
+        '<chat_nucleus>', 'Yes' if CHAT_SAMPLER.sample.__name__ == "sample_nucleus" else '')
+    HELP_MESSAGE = HELP_MESSAGE.replace(
+        '<chat_typical>', 'Yes' if CHAT_SAMPLER.sample.__name__ == "sample_typical" else '')
+    HELP_MESSAGE = HELP_MESSAGE.replace(
         '<chat_temp>', str(CHAT_SAMPLER.temp))
     HELP_MESSAGE = HELP_MESSAGE.replace(
         '<chat_top_p>', str(CHAT_SAMPLER.top_p))
@@ -57,6 +61,10 @@ with open("./help.md", 'r') as file:
         '<chat_af>', str(CHAT_SAMPLER.count_penalty))
     HELP_MESSAGE = HELP_MESSAGE.replace(
         '<chat_ap>', str(CHAT_SAMPLER.presence_penalty))
+    HELP_MESSAGE = HELP_MESSAGE.replace(
+        '<inst_nucleus>', 'Yes' if INSTRUCT_SAMPLER.sample.__name__ == "sample_nucleus" else '')
+    HELP_MESSAGE = HELP_MESSAGE.replace(
+        '<inst_typical>', 'Yes' if INSTRUCT_SAMPLER.sample.__name__ == "sample_typical" else '')
     HELP_MESSAGE = HELP_MESSAGE.replace(
         '<inst_temp>', str(INSTRUCT_SAMPLER.temp))
     HELP_MESSAGE = HELP_MESSAGE.replace(
@@ -76,14 +84,14 @@ def commands(user: User, message, enable_chat=False, is_private=False):
     params_match = re.match("\-p(arams)?", message)
 
     translate_match = re.match("\-tr", message)
-    retry_match = re.match("\-(retry|e)", message)
-    more_match = re.match("\-m(ore)?", message)
+    retry_match = re.match("\-(retry|e)\s*", message)
+    more_match = re.match("\-m(ore)?\s*", message)
     gen_match = re.match("\-g(en)?\s+", message)
     inst_match = re.match("\-i(nst)?\s+", message)
 
-    reset_match = re.match("\-(reset|s)", message)
-    reset_bot_match = re.match("\-(bot|b)", message)
-    alt_match = re.match("\-alt", message)
+    reset_match = re.match("\-(reset|s)\s*", message)
+    reset_bot_match = re.match("\-(bot|b)\s*", message)
+    alt_match = re.match("\-alt\s*", message)
     chat_match = re.match("\-c(hat)?\s+", message)
     at_match = re.match(f"\[CQ:at,qq={QQ}\]", message)
 
@@ -118,10 +126,13 @@ def commands(user: User, message, enable_chat=False, is_private=False):
         prompt = message[inst_match.end():]
         reply = chat.on_generate(user, prompt, mode=GenerateMode.INSTRUCT)
     elif enable_chat and reset_bot_match:
-        reply = chat.on_reset(user, SCENARIO_ALICE, INSTRUCT_SAMPLER)
+        prompt = message[reset_bot_match.end():]
+        reply = chat.on_reset(user, prompt, SCENARIO_ALICE, INSTRUCT_SAMPLER)
     elif enable_chat and reset_match:
-        reply = chat.on_reset(user, SCENARIO_ELOISE, CHAT_SAMPLER)
+        prompt = message[reset_match.end():]
+        reply = chat.on_reset(user, prompt, SCENARIO_ELOISE, CHAT_SAMPLER)
     elif enable_chat and alt_match:
+        prompt = message[alt_match.end():]
         reply = chat.on_message(user, prompt, alt=True)
     elif enable_chat and is_private:
         reply = chat.on_message(user, prompt)
