@@ -357,7 +357,7 @@ def on_message(user: User, message: str, alt=False) -> str:
 
     if len(message) > MAX_MESSAGE_LEN:
         return f"Your message is too long! (max {MAX_MESSAGE_LEN} tokens)"
-    if len(message) == 0:
+    if not alt and len(message) == 0:
         return ""
     print(f"{user.nickname}({user.id}): {message}")
 

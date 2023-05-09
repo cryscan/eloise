@@ -15,7 +15,7 @@ Model: <model>
 ### Chat
 1. `-s, -reset`: Reset your chat chain (Casual)
 2. `-b, -bot`: Reset your chat chain (AI Assistant)
-3. `-alt`: Alternative reply
+3. `-a, -alt`: Alternative reply
 4. <chat>: Chat with me
 
 ### Parameters
@@ -31,12 +31,12 @@ Model: <model>
 
 ### Examples
 #### Chat
-* Use `-alt` to retry
+* Use `-alt` or `-a` to retry
 * Use `-reset` or `-s` to reset, better at chillin'
 * Use `-bot` or `-b` to enter bot mode, better at QA and coding
 * Do not use `-retry` or `-more`: useless
 
-```
+```text
 <user>: What's your interesting news today?
 
 <bot>: ...
@@ -54,7 +54,7 @@ Model: <model>
 * Use `-retry` or `-e` to retry
 * Use `-more` to continue
 
-```
+```text
 <user>: -i Write a letter to our customers, apologizing for delay in delivery of our products.
 
 <bot>: Dear Valued Customers:
@@ -68,7 +68,7 @@ Yours Sincerely
 ```
 
 #### Translation
-```
+```text
 <user>: -tr Hello World!
 
 <bot>: 你好，世界！
@@ -79,7 +79,7 @@ Yours Sincerely
 ```
 
 #### Generation
-```
+```text
 <user>: -gen -temp=2.0 -top_p=0.5 Here is a story about a man's lonely journey on Mars:
 
 <bot>: (Some story...)

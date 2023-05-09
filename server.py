@@ -91,7 +91,7 @@ def commands(user: User, message, enable_chat=False, is_private=False):
 
     reset_match = re.match("\-(reset|s)", message)
     reset_bot_match = re.match("\-(bot|b)", message)
-    alt_match = re.match("\-alt", message)
+    alt_match = re.match("\-a(lt)?", message)
     chat_match = re.match("\-c(hat)?\s+", message)
     at_match = re.match(f"\[CQ:at,qq={QQ}\]", message)
 
