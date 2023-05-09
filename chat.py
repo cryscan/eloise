@@ -166,26 +166,26 @@ def fix_tokens(tokens):
 
 
 def init_run():
-    try:
-        recover_all_state()
-        print("Recovered state")
-    except:
-        print("Loading chat intro...")
-        scenario = SCENARIO_ELOISE
-        tokens = tokenizer.encode(scenario.intro())
-        tokens = fix_tokens(tokens)
-        out, state = run_rnn(tokens)
-        save_all_state("", scenario.intro.__name__, out, state, tokens)
+    # try:
+    #     recover_all_state()
+    #     print("Recovered state")
+    # except:
+    print("Loading chat intro...")
+    scenario = SCENARIO_ELOISE
+    tokens = tokenizer.encode(scenario.intro())
+    tokens = fix_tokens(tokens)
+    out, state = run_rnn(tokens)
+    save_all_state("", scenario.intro.__name__, out, state, tokens)
 
-        print("Loading chat intro...")
-        scenario = SCENARIO_ALICE
-        tokens = tokenizer.encode(scenario.intro())
-        tokens = fix_tokens(tokens)
-        out, state = run_rnn(tokens)
-        save_all_state("", scenario.intro.__name__, out, state, tokens)
+    print("Loading chat intro...")
+    scenario = SCENARIO_ALICE
+    tokens = tokenizer.encode(scenario.intro())
+    tokens = fix_tokens(tokens)
+    out, state = run_rnn(tokens)
+    save_all_state("", scenario.intro.__name__, out, state, tokens)
 
-        clear_cache()
-        dump_all_state()
+    clear_cache()
+    dump_all_state()
 
 
 def recover_all_state():
