@@ -3,6 +3,7 @@
 ########################################################################################################
 
 import types, gc, os, time, re
+from lora import lora_merge
 import torch
 from torch.nn import functional as F
 torch.backends.cudnn.benchmark = True
@@ -75,7 +76,8 @@ else:
 ########################################################################################################
 
 class RWKV(MyModule):
-    def __init__(self, model, strategy, verbose = True, convert_and_save_and_exit = None):
+    def __init__(self, model, strategy, verbose = True, convert_and_save_and_exit = None, 
+                 lora = None, lora_alpha = 0, lora_layer_filter = None):
         super().__init__()
         if verbose:
             prxxx = lambda *args, **kwargs: print(*args, **kwargs)
@@ -101,7 +103,12 @@ class RWKV(MyModule):
             args.MODEL_NAME += '.pth'
         prxxx(f'Loading {args.MODEL_NAME} ...')
         with torch.no_grad():
-            self.w = torch.load(args.MODEL_NAME, map_location='cpu') # load model to CPU first
+            if lora:
+                self.w = lora_merge(base_model=args.MODEL_NAME, lora=lora,
+                    lora_alpha=lora_alpha, layer_filter=lora_layer_filter,
+                    device=('cuda' if 'cuda' in strategy else 'cpu'))
+            else:
+                self.w = torch.load(args.MODEL_NAME, map_location='cpu') # load model to CPU first
             gc.collect()
             w = self.w
 
