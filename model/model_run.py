@@ -3,7 +3,7 @@
 ########################################################################################################
 
 import types, gc, os, time, re
-from lora import lora_merge
+from model.lora import lora_merge
 import torch
 from torch.nn import functional as F
 torch.backends.cudnn.benchmark = True
