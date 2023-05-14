@@ -57,6 +57,16 @@ The following is a verbose and detailed conversation between an AI assistant cal
 {bot}{interface} Hi! I am an AI assistant called {bot}. I am pleased to answer your questions and give you helpful advices. What would you like to say?
 
 '''
+
+#         intro = f'''
+# The following is a verbose and detailed conversation between an AI assistant called {bot}, and a human user called {user}. {bot} is intelligent, knowledgeable, wise and polite.
+
+# {user}{interface} 你好！
+
+# {bot}{interface} 你好！我是一名叫作{bot}的人工智能助手。有什么需要帮助的吗？
+
+# '''
+
         return f"\n{intro.strip()}\n\n"
 
     def chat_format(self, message: str):

@@ -51,7 +51,7 @@ MAX_GENERATE_LEN = 250
 MAX_REPLY_LEN = 1024
 
 CHAT_SAMPLER = SAMPLER("typical", 1.0, 0.8, 0.2, 0.1, 0.1)
-INSTRUCT_SAMPLER = SAMPLER("nucleus", 0.8, 0.5, 0.95, 0.1, 0.1)
+INSTRUCT_SAMPLER = SAMPLER("nucleus", 1.0, 0.5, 0.95, 0.1, 0.1)
 
 args = types.SimpleNamespace()
 
@@ -65,7 +65,7 @@ args = types.SimpleNamespace()
 args.strategy = 'cuda fp16i8 *16 -> cuda fp16'
 
 args.MODEL_NAME = '/root/autodl-tmp/models/RWKV-4-Raven-14B-v11x-Eng99%-Other1%-20230501-ctx8192'
-# args.MODEL_NAME = '/root/autodl-tmp/models/RWKV-4-Raven-7B-v11x-Eng99%-Other1%-20230429-ctx8192'
+# args.MODEL_NAME = '/root/autodl-tmp/models/RWKV-4-Raven-7B-v11-Eng49%-Chn49%-Jpn1%-Other1%-20230430-ctx8192'
 
 args.STATE_DUMP_NAME = 'states/14b.state'
 # args.STATE_DUMP_NAME = 'states/7b.state'
@@ -185,7 +185,7 @@ def init_run():
     save_all_state("", scenario.intro.__name__, out, state, tokens)
 
     clear_cache()
-    dump_all_state()
+    # dump_all_state()
 
 
 def recover_all_state():
