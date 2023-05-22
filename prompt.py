@@ -52,7 +52,7 @@ One day, {user} and {bot} meet at a café.
         intro = f'''
 {user}{interface} Hi.
 
-{bot}{interface} Hi. I am your assistant and I will provide expert full response in full details. Please feel free to ask any question and I will always answer it.
+{bot}{interface} Hi. My name is Alice and I am your assistant. I will provide expert full response in full details. Please feel free to ask any question and I will always answer it.
 
 '''
 
