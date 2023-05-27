@@ -72,13 +72,15 @@ class SAMPLER():
 |{:^30}|{:>10}|
 |{:^30}|{:>10}|
 |{:^30}|{:>10}|
+|{:^30}|{:>10}|
 '''.format("Sampler Params", "Values",
            "Method", method,
            "Temperature", self.temp,
            "Top P", self.top_p,
            "Tau", self.tau,
            "Count Penalty", self.count_penalty,
-           "Presence Penalty", self.presence_penalty)
+           "Presence Penalty", self.presence_penalty,
+           "Penalty Range", self.penalty_range)
 
     def parse(self, input: str) -> str:
         nucleus_match = re.search("\-nucleus\s+", input)
