@@ -62,6 +62,8 @@ with open("./help.md", 'r') as file:
     HELP_MESSAGE = HELP_MESSAGE.replace(
         '<chat_ap>', str(CHAT_SAMPLER.presence_penalty))
     HELP_MESSAGE = HELP_MESSAGE.replace(
+        '<chat_ar>', str(CHAT_SAMPLER.penalty_range))
+    HELP_MESSAGE = HELP_MESSAGE.replace(
         '<inst_nucleus>', 'Yes' if INSTRUCT_SAMPLER.sample.__name__ == "sample_nucleus" else '')
     HELP_MESSAGE = HELP_MESSAGE.replace(
         '<inst_typical>', 'Yes' if INSTRUCT_SAMPLER.sample.__name__ == "sample_typical" else '')
@@ -75,6 +77,8 @@ with open("./help.md", 'r') as file:
         '<inst_af>', str(INSTRUCT_SAMPLER.count_penalty))
     HELP_MESSAGE = HELP_MESSAGE.replace(
         '<inst_ap>', str(INSTRUCT_SAMPLER.presence_penalty))
+    HELP_MESSAGE = HELP_MESSAGE.replace(
+        '<inst_ar>', str(INSTRUCT_SAMPLER.penalty_range))
 
 received_messages = set()
 

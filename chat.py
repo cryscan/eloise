@@ -50,8 +50,8 @@ CHUNK_LEN = 256
 MAX_GENERATE_LEN = 250
 MAX_REPLY_LEN = 1024
 
-CHAT_SAMPLER = SAMPLER("typical", 1.0, 0.8, 0.2, 0.1, 0.1)
-INSTRUCT_SAMPLER = SAMPLER("nucleus", 1.0, 0.5, 0.95, 0.1, 0.1)
+CHAT_SAMPLER = SAMPLER("typical", 1.0, 0.8, 0.2, 0.1, 0.1, 256)
+INSTRUCT_SAMPLER = SAMPLER("nucleus", 1.0, 0.5, 0.95, 0.1, 0.1, 256)
 
 args = types.SimpleNamespace()
 
@@ -326,6 +326,13 @@ def on_generate(user: User, message: str, mode=GenerateMode.GENERATE) -> str:
         else:
             occurrence[token] += 1
 
+        if i > sampler.penalty_range:
+            return_token = model_tokens[-sampler.penalty_range]
+            if return_token in occurrence:
+                occurrence[return_token] -= 1
+                if occurrence[return_token] == 0:
+                    del occurrence[return_token]
+
         model_tokens += [token]
         out, model_state = run_rnn([token], model_state)
 
@@ -427,6 +434,13 @@ def on_message(user: User, message: str, alt=False) -> str:
                 occurrence[token] = 1
             else:
                 occurrence[token] += 1
+
+        if i > sampler.penalty_range:
+            return_token = model_tokens[-sampler.penalty_range]
+            if return_token in occurrence:
+                occurrence[return_token] -= 1
+                if occurrence[return_token] == 0:
+                    del occurrence[return_token]
 
         tokens = [END_OF_LINE, END_OF_LINE] if token == END_OF_TEXT else [token]
         model_tokens += tokens

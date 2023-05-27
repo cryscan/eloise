@@ -28,6 +28,7 @@ Model: <model>
 | `-tau=<number>`   | Lower tau → more human-like answer | <chat_tau>          | <inst_tau>                     |
 | `-af=<number>`    | Count penalty, avoids repeating    | <chat_af>           | <inst_af>                      |
 | `-ap=<number>`    | Presence penalty                   | <chat_ap>           | <inst_ap>                      |
+| `-ar=<number>`    | Repeat penalty range in tokens     | <chat_ar>           | <inst_ar>                      |
 
 ### Examples
 #### Chat

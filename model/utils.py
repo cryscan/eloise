@@ -46,7 +46,7 @@ class TOKENIZER():
 
 
 class SAMPLER():
-    def __init__(self, sample, temp, top_p, tau, count_penalty, presence_penalty):
+    def __init__(self, sample, temp, top_p, tau, count_penalty, presence_penalty, penalty_range):
         if sample == 'nucleus':
             self.sample = self.sample_nucleus
         elif sample == 'typical':
@@ -60,6 +60,7 @@ class SAMPLER():
         self.tau = tau
         self.count_penalty = count_penalty
         self.presence_penalty = presence_penalty
+        self.penalty_range = penalty_range
 
     def __str__(self) -> str:
         method = "Nucleus" if self.sample == self.sample_nucleus else "Typical"
@@ -87,6 +88,7 @@ class SAMPLER():
         tau_match = re.search("(\-tau\s*=\s*)(\-?\d+(.\d*)?)\s*", input)
         af_match = re.search("(\-af\s*=\s*)(\-?\d+(.\d*)?)\s*", input)
         ap_match = re.search("(\-ap\s*=\s*)(\-?\d+(.\d*)?)\s*", input)
+        ar_match = re.search("(\-ar\s*=\s*)(\d+)\s*", input)
 
         if temp_match:
             self.temp = float(temp_match.group(2))
@@ -105,6 +107,9 @@ class SAMPLER():
         if ap_match:
             self.presence_penalty = float(ap_match.group(2))
             input = input.replace(ap_match.group(0), "")
+        if ar_match:
+            self.penalty_range = int(ar_match.group(2))
+            input = input.replace(ar_match.group(0), "")
         if nucleus_match:
             self.sample = self.sample_nucleus
             input = input.replace(nucleus_match.group(0), "")
