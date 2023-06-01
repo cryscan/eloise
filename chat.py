@@ -14,7 +14,7 @@ import langid
 
 from model.model_run import RWKV
 from model.utils import TOKENIZER, SAMPLER
-from prompt import User, Scenario, SCENARIO_ALICE, SCENARIO_ELOISE
+from prompt import User, Scenario, SCENARIO_ALICE, SCENARIO_ELOISE, SCENARIO_CHOCOLA
 
 import prompt
 
@@ -37,7 +37,8 @@ CHAT_LANG = 'English'  # English Chinese
 # CHAT_LANG = 'Chinese'
 SAME_LANG = "PLEASE SELECT TWO DISTINCT LANGUAGES"
 
-tokenizer = TOKENIZER("20B_tokenizer.json")
+# tokenizer = TOKENIZER("20B_tokenizer.json")
+tokenizer = TOKENIZER("rwkv_vocab_v20230424")
 
 DONT_OUTPUT = -float('inf')
 END_OF_TEXT = 0
@@ -56,15 +57,16 @@ INSTRUCT_SAMPLER = SAMPLER("nucleus", 1.0, 0.5, 0.95, 0.1, 0.1, 256)
 args = types.SimpleNamespace()
 
 # args.strategy = 'cpu fp32'
-# args.strategy = 'cuda fp16'
+args.strategy = 'cuda fp16'
 # args.strategy = 'cuda fp16 *8 -> cpu fp32'
 # args.strategy = 'cuda fp16 *6+'
 # args.strategy = 'cuda fp16 *0+ -> cpu fp32 *1'
 # args.strategy = 'cuda fp16 *32 -> cpu fp32'
 # args.strategy = 'cuda fp16 *20 -> cpu fp32'
-args.strategy = 'cuda fp16i8 *16 -> cuda fp16'
+# args.strategy = 'cuda fp16i8 *16 -> cuda fp16'
 
-args.MODEL_NAME = '/root/autodl-tmp/models/RWKV-4-Raven-14B-v12-Eng98%-Other2%-20230523-ctx8192'
+args.MODEL_NAME = '/root/autodl-tmp/models/RWKV-4-World-7B-v1-OnlyForTest_30%_trained-20230529-ctx4096'
+# args.MODEL_NAME = '/root/autodl-tmp/models/RWKV-4-Raven-14B-v12-Eng98%-Other2%-20230523-ctx8192'
 # args.MODEL_NAME = '/root/autodl-tmp/models/RWKV-4-Raven-7B-v11-Eng49%-Chn49%-Jpn1%-Other1%-20230430-ctx8192'
 
 args.STATE_DUMP_NAME = 'states/14b.state'
@@ -179,6 +181,13 @@ def init_run():
 
     print("Loading chat intro...")
     scenario = SCENARIO_ALICE
+    tokens = tokenizer.encode(scenario.intro())
+    tokens = fix_tokens(tokens)
+    out, state = run_rnn(tokens)
+    save_all_state("", scenario.intro.__name__, out, state, tokens)
+
+    print("Loading chat intro...")
+    scenario = SCENARIO_CHOCOLA
     tokens = tokenizer.encode(scenario.intro())
     tokens = fix_tokens(tokens)
     out, state = run_rnn(tokens)
@@ -333,7 +342,8 @@ def on_generate(user: User, message: str, mode=GenerateMode.GENERATE) -> str:
                 if occurrence[return_token] == 0:
                     del occurrence[return_token]
 
-        model_tokens += [token]
+        if token != END_OF_TEXT:
+            model_tokens += [token]
         out, model_state = run_rnn([token], model_state)
 
         xxx = tokenizer.decode(model_tokens[end:])
@@ -344,7 +354,7 @@ def on_generate(user: User, message: str, mode=GenerateMode.GENERATE) -> str:
         reply = tokenizer.decode(model_tokens[begin:])
         reply = reply.replace("\r\n", '\n').replace('\\n', '\n')
 
-        if token == 0:
+        if token == END_OF_TEXT:
             break
 
     end_time = time.time()

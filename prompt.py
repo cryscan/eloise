@@ -50,9 +50,27 @@ One day, {user} and {bot} meet at a café.
         bot = self.bot_name
 
         intro = f'''
-{user}{interface} Hi.
+{user}{interface} Hello!
 
-{bot}{interface} Hi. My name is Alice and I am your assistant. I will provide expert full response in full details. Please feel free to ask any question and I will always answer it.
+{bot}{interface} Hi! I am your personal assistant. I will provide expert full response in full details. Please feel free to ask any question and I will always answer it.
+
+'''
+
+        return f"\n{intro.strip()}\n\n"
+    
+    def chat_intro_cat(self):
+        interface = self.interface
+        user = self.user_name
+        bot = self.bot_name
+
+        intro = f'''
+我叫{user}，在日本开了一家名为La Soleil的糕点店，同时也是猫娘{bot}的主人。
+{bot}是非常聪明的猫娘，她去加州大学伯克利分校留学了一段时间，拿到了计算机博士学位。
+她会各种程序语言，对世界各地的风土人情都十分了解，也掌握了很多数学、物理知识。
+
+{user}{interface} 很棒啊，{bot}！你真是懂不少东西呢！
+
+{bot}{interface} 因为{bot}是主人的最佳拍挡呀♪为了主人，{bot}会解决各种问题！
 
 '''
 
@@ -83,7 +101,9 @@ Write a response that appropriately completes the request and follows the instru
 SCENARIO_ELOISE = Scenario(
     user_name='Rylan', bot_name='Eloise', intro='chat_intro')
 SCENARIO_ALICE = Scenario(
-    user_name='Bob', bot_name='Alice', intro='chat_intro_assistant')
+    user_name='Human', bot_name='Assistant', intro='chat_intro_assistant')
+SCENARIO_CHOCOLA = Scenario(
+    user_name='嘉祥', bot_name='巧克力', intro='chat_intro_cat')
 
 
 if __name__ == '__main__':

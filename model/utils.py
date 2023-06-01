@@ -3,6 +3,7 @@
 ########################################################################################################
 
 import json
+import sys
 import time
 import random
 import os
@@ -26,7 +27,13 @@ def record_time(name):
 
 class TOKENIZER():
     def __init__(self, WORD_NAME):
-        self.tokenizer = Tokenizer.from_file(WORD_NAME)
+        if WORD_NAME == 'rwkv_vocab_v20230424':
+            sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+            from rwkv_tokenizer import TRIE_TOKENIZER
+            dirname = os.path.dirname(os.path.abspath(__file__))
+            self.tokenizer = TRIE_TOKENIZER(dirname + '/rwkv_vocab_v20230424.txt')
+        else:
+            self.tokenizer = Tokenizer.from_file(WORD_NAME)
 
     def refine_context(self, context):
         context = context.strip().split('\n')
@@ -39,7 +46,10 @@ class TOKENIZER():
         return context
 
     def encode(self, x):
-        return self.tokenizer.encode(x).ids
+        if 'Tokenizer' in str(type(self.tokenizer)):
+            return self.tokenizer.encode(x).ids
+        else:
+            return self.tokenizer.encode(x)
 
     def decode(self, x):
         return self.tokenizer.decode(x)
