@@ -35,6 +35,9 @@ class TOKENIZER():
         else:
             self.tokenizer = Tokenizer.from_file(WORD_NAME)
 
+    def is_trie(self):
+        return 'Tokenizer' not in str(type(self.tokenizer))
+
     def refine_context(self, context):
         context = context.strip().split('\n')
         for c in range(len(context)):
@@ -46,7 +49,7 @@ class TOKENIZER():
         return context
 
     def encode(self, x):
-        if 'Tokenizer' in str(type(self.tokenizer)):
+        if not self.is_trie():
             return self.tokenizer.encode(x).ids
         else:
             return self.tokenizer.encode(x)
