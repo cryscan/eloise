@@ -127,8 +127,9 @@ def chat():
     if matched:
         logger.info(f"{user.nickname}({user.id}): {prompt}")
         logger.info(reply)
+        return reply
 
-    return reply
+    return ""
 
 
 if __name__ == '__main__':
