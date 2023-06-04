@@ -37,9 +37,6 @@ CHAT_LANG = 'English'  # English Chinese
 # CHAT_LANG = 'Chinese'
 SAME_LANG = "PLEASE SELECT TWO DISTINCT LANGUAGES"
 
-# tokenizer = TOKENIZER("20B_tokenizer.json")
-tokenizer = TOKENIZER("rwkv_vocab_v20230424")
-
 DONT_OUTPUT = -float('inf')
 END_OF_TEXT = 0
 END_OF_LINE = 187
@@ -57,6 +54,9 @@ CHAT_SAMPLER = SAMPLER("nucleus", 1.0, 0.7, 0.2, 0.1, 0.1, 256)
 INSTRUCT_SAMPLER = SAMPLER("nucleus", 1.0, 0.5, 0.95, 0.1, 0.1, 256)
 
 args = types.SimpleNamespace()
+
+# tokenizer = TOKENIZER("20B_tokenizer.json")
+tokenizer = TOKENIZER("rwkv_vocab_v20230424")
 
 # args.strategy = 'cpu fp32'
 args.strategy = 'cuda fp16'

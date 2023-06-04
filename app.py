@@ -40,6 +40,8 @@ def handle_post():
         user = User(sender['user_id'], sender['nickname'], sender['sex'])
     except:
         return 'OK'
+    
+    remote_addr = request.remote_addr
 
     if user in banned_users:
         return 'OK'
@@ -68,10 +70,10 @@ def handle_post():
                 imgkit.from_string(
                     html, file, css='styles.css', options=options)
                 requests.get(
-                    f"http://127.0.0.1:5700/send_private_msg?user_id={user.id}&message=[CQ:image,file=file:///{path}]")
+                    f"http://{remote_addr}:5700/send_private_msg?user_id={user.id}&message=[CQ:image,file=file:///{path}]")
             else:
                 requests.get(
-                    f"http://127.0.0.1:5700/send_private_msg?user_id={user.id}&message={quote(reply)}")
+                    f"http://{remote_addr}:5700/send_private_msg?user_id={user.id}&message={quote(reply)}")
     elif type == 'group':
         try:
             group_id = int(json['group_id'])
@@ -99,10 +101,10 @@ def handle_post():
                 imgkit.from_string(
                     html, file, css='styles.css', options=options)
                 requests.get(
-                    f"http://127.0.0.1:5700/send_group_msg?group_id={group_id}&message=[CQ:reply,id={message_id}][CQ:image,file=file:///{path}]")
+                    f"http://{remote_addr}:5700/send_group_msg?group_id={group_id}&message=[CQ:reply,id={message_id}][CQ:image,file=file:///{path}]")
             else:
                 requests.get(
-                    f"http://127.0.0.1:5700/send_group_msg?group_id={group_id}&message=[CQ:reply,id={message_id}]{quote(reply)}")
+                    f"http://{remote_addr}:5700/send_group_msg?group_id={group_id}&message=[CQ:reply,id={message_id}]{quote(reply)}")
 
     return 'OK'
 
