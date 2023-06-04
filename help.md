@@ -15,8 +15,9 @@ Model: <model>
 ### Chat
 1. `-s, -reset`: Reset your chat chain (Casual)
 2. `-b, -bot`: Reset your chat chain (AI Assistant)
-3. `-a, -alt`: Alternative reply
-4. <chat>: Chat with me
+3. `-f`: Reset your chat chain (Role-playing)
+4. `-a, -alt`: Alternative reply
+5. <chat>: Chat with me
 
 ### Parameters
 | Param             | Description                        | Default (Chat Mode) | Default (Bot/Instruction Mode) |
