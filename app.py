@@ -32,6 +32,7 @@ IMAGE_WIDTH = 600
 @app.route('/', methods=["POST"])
 def handle_post():
     try:
+        remote_addr = request.remote_addr
         json = request.get_json()
         type = json['message_type']
         message = json['raw_message']
@@ -40,8 +41,8 @@ def handle_post():
         user = User(sender['user_id'], sender['nickname'], sender['sex'])
     except:
         return 'OK'
-    
-    remote_addr = request.remote_addr
+
+    text_only = json.get('text_only')
 
     if user in banned_users:
         return 'OK'
@@ -58,7 +59,7 @@ def handle_post():
             logger.info(f"{user.nickname}({user.id}): {prompt}")
             logger.info(reply)
             received_messages.add(message_id)
-            if len(reply) > IMAGE_THRESHOLD or reply.count('\n') > 2:
+            if not text_only and (len(reply) > IMAGE_THRESHOLD or reply.count('\n') > 2):
                 options = {'font-family': 'SimSun'}
                 html = markdown.markdown(
                     reply, extensions=['extra', 'nl2br', 'sane_lists', 'codehilite'], options=options)
@@ -89,7 +90,7 @@ def handle_post():
             logger.info(f"{group_id}: {user.nickname}({user.id}): {prompt}")
             logger.info(reply)
             received_messages.add(message_id)
-            if len(reply) > IMAGE_THRESHOLD or reply.count('\n') > 2:
+            if not text_only and (len(reply) > IMAGE_THRESHOLD or reply.count('\n') > 2):
                 options = {'font-family': 'SimSun'}
                 html = markdown.markdown(
                     reply, extensions=['extra', 'nl2br', 'sane_lists', 'codehilite'], options=options)
