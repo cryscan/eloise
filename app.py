@@ -42,8 +42,6 @@ def handle_post():
     except:
         return 'OK'
 
-    text_only = json.get('text_only')
-
     if user in banned_users:
         return 'OK'
     if message_id in received_messages:
@@ -59,7 +57,7 @@ def handle_post():
             logger.info(f"{user.nickname}({user.id}): {prompt}")
             logger.info(reply)
             received_messages.add(message_id)
-            if not text_only and (len(reply) > IMAGE_THRESHOLD or reply.count('\n') > 2):
+            if len(reply) > IMAGE_THRESHOLD or reply.count('\n') > 2:
                 options = {'font-family': 'SimSun'}
                 html = markdown.markdown(
                     reply, extensions=['extra', 'nl2br', 'sane_lists', 'codehilite'], options=options)
@@ -90,7 +88,7 @@ def handle_post():
             logger.info(f"{group_id}: {user.nickname}({user.id}): {prompt}")
             logger.info(reply)
             received_messages.add(message_id)
-            if not text_only and (len(reply) > IMAGE_THRESHOLD or reply.count('\n') > 2):
+            if len(reply) > IMAGE_THRESHOLD or reply.count('\n') > 2:
                 options = {'font-family': 'SimSun'}
                 html = markdown.markdown(
                     reply, extensions=['extra', 'nl2br', 'sane_lists', 'codehilite'], options=options)
@@ -110,7 +108,30 @@ def handle_post():
     return 'OK'
 
 
+@app.route('/chat', methods=['GET'])
+def chat():
+    args = request.args
+    try:
+        user_id = args['user_id']
+        user_nickname = args.get('user_nickname', 'John')
+        user_sex = args.get('user_sex', 'unknown')
+
+        message = args['message']
+    except:
+        return ""
+
+    user = server.User(user_id, user_nickname, user_sex)
+    matched, prompt, reply = server.commands(
+        user, message, enable_chat=True, is_private=True)
+
+    if matched:
+        logger.info(f"{user.nickname}({user.id}): {prompt}")
+        logger.info(reply)
+
+    return reply
+
+
 if __name__ == '__main__':
     print("Starting server...")
     server.init()
-    app.run(debug=False, host='127.0.0.1', port=8000, threaded=False)
+    app.run(debug=False, host='127.0.0.1', port=6006, threaded=False)
