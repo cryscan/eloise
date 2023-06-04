@@ -9,7 +9,7 @@ from urllib.parse import quote
 import markdown
 import imgkit
 
-from prompt import User, SCENARIO_ALICE, SCENARIO_ELOISE, SCENARIO_CHOCOLA
+from prompt import User, SCENARIO_ALICE, SCENARIO_ELOISE, SCENARIO_NEURO
 from chat import GenerateMode, CHAT_SAMPLER, INSTRUCT_SAMPLER, model
 
 app = Flask(__name__)
@@ -135,7 +135,7 @@ def commands(user: User, message, enable_chat=False, is_private=False):
         reply = chat.on_reset(user, prompt, SCENARIO_ALICE, INSTRUCT_SAMPLER)
     elif enable_chat and reset_cat_match:
         prompt = message[reset_cat_match.end():]
-        reply = chat.on_reset(user, prompt, SCENARIO_CHOCOLA, CHAT_SAMPLER)
+        reply = chat.on_reset(user, prompt, SCENARIO_NEURO, CHAT_SAMPLER)
     elif enable_chat and reset_match:
         prompt = message[reset_match.end():]
         reply = chat.on_reset(user, prompt, SCENARIO_ELOISE, CHAT_SAMPLER)

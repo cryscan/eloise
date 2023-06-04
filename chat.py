@@ -14,7 +14,7 @@ import langid
 
 from model.model_run import RWKV
 from model.utils import TOKENIZER, SAMPLER
-from prompt import User, Scenario, SCENARIO_ALICE, SCENARIO_ELOISE, SCENARIO_CHOCOLA
+from prompt import User, Scenario, SCENARIO_ALICE, SCENARIO_ELOISE, SCENARIO_NEURO
 
 import prompt
 
@@ -46,13 +46,14 @@ END_OF_LINE = 187
 END_OF_LINE_DOUBLE = 535
 END_OF_LINE_DOUBLE_TRIE = 261
 
-MAX_MESSAGE_LEN = 2048
+MAX_MESSAGE_LEN = 8192
 CHUNK_LEN = 256
 
 MAX_GENERATE_LEN = 250
 MAX_REPLY_LEN = 1024
 
-CHAT_SAMPLER = SAMPLER("typical", 1.0, 0.8, 0.2, 0.1, 0.1, 256)
+# CHAT_SAMPLER = SAMPLER("typical", 1.0, 0.8, 0.4, 0.1, 0.1, 256)
+CHAT_SAMPLER = SAMPLER("nucleus", 1.0, 0.7, 0.2, 0.1, 0.1, 256)
 INSTRUCT_SAMPLER = SAMPLER("nucleus", 1.0, 0.5, 0.95, 0.1, 0.1, 256)
 
 args = types.SimpleNamespace()
@@ -197,7 +198,7 @@ def init_run():
     save_all_state("", scenario.intro.__name__, out, state, tokens)
 
     print("Loading chat intro...")
-    scenario = SCENARIO_CHOCOLA
+    scenario = SCENARIO_NEURO
     tokens = tokenizer.encode(scenario.intro())
     tokens = fix_tokens_end_line(tokens)
     out, state = run_rnn(tokens)
