@@ -109,16 +109,33 @@ def handle_post():
 
 
 @app.route('/chat', methods=['GET'])
-def chat():
-    args = request.args
+def handle_chat():
     try:
+        args = request.args
         user_id = args['user_id']
         user_nickname = args.get('user_nickname', 'John')
         user_sex = args.get('user_sex', 'unknown')
 
+        temp = args.get('temp')
+        top_p = args.get('top_p')
+        tau = args.get('tau')
+        af = args.get('af')
+        ap = args.get('ap')
+
         message = args['message']
     except:
-        return ""
+        return ''
+
+    if temp:
+        message = f'-temp={temp} ' + message
+    if top_p:
+        message = f'-top_p={top_p} ' + message
+    if tau:
+        message = f'-tau={tau} ' + message
+    if af:
+        message = f'-af={af} ' + message
+    if ap:
+        message = f'-ap={ap} ' + message
 
     user = server.User(user_id, user_nickname, user_sex)
     matched, prompt, reply = server.commands(
@@ -129,7 +146,36 @@ def chat():
         logger.info(reply)
         return reply
 
-    return ""
+    return ''
+
+
+@app.route('/reset', methods=['GET'])
+def handle_reset():
+    try:
+        args = request.args
+        user_id = args['user_id']
+        user_nickname = args.get('user_nickname', 'John')
+        user_sex = args.get('user_sex', 'unknown')
+
+        mode = args.get('mode', 'b')
+    except:
+        return ''
+
+    if mode in ['s', 'b', 'f']:
+        message = '-' + mode
+    else:
+        return ''
+
+    user = server.User(user_id, user_nickname, user_sex)
+    matched, prompt, reply = server.commands(
+        user, message, enable_chat=True, is_private=True)
+
+    if matched:
+        logger.info(f"{user.nickname}({user.id}): {prompt}")
+        logger.info(reply)
+        return reply
+
+    return ''
 
 
 if __name__ == '__main__':
