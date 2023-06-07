@@ -51,7 +51,7 @@ MAX_REPLY_LEN = 1024
 
 # CHAT_SAMPLER = SAMPLER("typical", 1.0, 0.8, 0.4, 0.1, 0.1, 256)
 CHAT_SAMPLER = SAMPLER("nucleus", 1.0, 0.7, 0.4, 0.1, 0.1, 256)
-INSTRUCT_SAMPLER = SAMPLER("nucleus", 1.0, 0.5, 0.95, 0.1, 0.1, 256)
+INSTRUCT_SAMPLER = SAMPLER("nucleus", 1.0, 0.5, 0.95, 0.3, 0.3, 256)
 
 args = types.SimpleNamespace()
 
