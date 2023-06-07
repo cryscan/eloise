@@ -50,7 +50,7 @@ MAX_GENERATE_LEN = 250
 MAX_REPLY_LEN = 1024
 
 # CHAT_SAMPLER = SAMPLER("typical", 1.0, 0.8, 0.4, 0.1, 0.1, 256)
-CHAT_SAMPLER = SAMPLER("nucleus", 1.0, 0.7, 0.2, 0.1, 0.1, 256)
+CHAT_SAMPLER = SAMPLER("nucleus", 1.0, 0.7, 0.4, 0.1, 0.1, 256)
 INSTRUCT_SAMPLER = SAMPLER("nucleus", 1.0, 0.5, 0.95, 0.1, 0.1, 256)
 
 args = types.SimpleNamespace()
@@ -67,7 +67,7 @@ args.strategy = 'cuda fp16'
 # args.strategy = 'cuda fp16 *20 -> cpu fp32'
 # args.strategy = 'cuda fp16i8 *16 -> cuda fp16'
 
-args.MODEL_NAME = '/root/autodl-tmp/models/RWKV-4-World-7B-v1-OnlyForTest_40%_trained-20230601-ctx4096'
+args.MODEL_NAME = '/root/autodl-tmp/models/RWKV-4-World-7B-v1-OnlyForTest_52%_trained-20230606-ctx4096'
 # args.MODEL_NAME = '/root/autodl-tmp/models/RWKV-4-Raven-14B-v12-Eng98%-Other2%-20230523-ctx8192'
 # args.MODEL_NAME = '/root/autodl-tmp/models/RWKV-4-Raven-7B-v11-Eng49%-Chn49%-Jpn1%-Other1%-20230430-ctx8192'
 

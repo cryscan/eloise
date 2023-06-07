@@ -127,44 +127,15 @@ def handle_chat():
         return ''
 
     if temp:
-        message = f'-temp={temp} ' + message
+        message += f'-temp={temp} '
     if top_p:
-        message = f'-top_p={top_p} ' + message
+        message += f'-top_p={top_p} '
     if tau:
-        message = f'-tau={tau} ' + message
+        message += f'-tau={tau} '
     if af:
-        message = f'-af={af} ' + message
+        message += f'-af={af} '
     if ap:
-        message = f'-ap={ap} ' + message
-
-    user = server.User(user_id, user_nickname, user_sex)
-    matched, prompt, reply = server.commands(
-        user, message, enable_chat=True, is_private=True)
-
-    if matched:
-        logger.info(f"{user.nickname}({user.id}): {prompt}")
-        logger.info(reply)
-        return reply
-
-    return ''
-
-
-@app.route('/reset', methods=['GET'])
-def handle_reset():
-    try:
-        args = request.args
-        user_id = args['user_id']
-        user_nickname = args.get('user_nickname', 'John')
-        user_sex = args.get('user_sex', 'unknown')
-
-        mode = args.get('mode', 'b')
-    except:
-        return ''
-
-    if mode in ['s', 'b', 'f']:
-        message = '-' + mode
-    else:
-        return ''
+        message += f'-ap={ap} '
 
     user = server.User(user_id, user_nickname, user_sex)
     matched, prompt, reply = server.commands(
