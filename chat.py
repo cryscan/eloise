@@ -33,15 +33,7 @@ os.environ["RWKV_JIT_ON"] = '1'
 # '1' : use CUDA kernel for seq mode (much faster)
 os.environ["RWKV_CUDA_ON"] = '1'
 
-CHAT_LANG = 'English'  # English Chinese
-# CHAT_LANG = 'Chinese'
 SAME_LANG = "PLEASE SELECT TWO DISTINCT LANGUAGES"
-
-DONT_OUTPUT = -float('inf')
-END_OF_TEXT = 0
-END_OF_LINE = 187
-END_OF_LINE_DOUBLE = 535
-END_OF_LINE_DOUBLE_TRIE = 261
 
 MAX_MESSAGE_LEN = 8192
 CHUNK_LEN = 256
@@ -50,13 +42,19 @@ MAX_GENERATE_LEN = 250
 MAX_REPLY_LEN = 1024
 
 # CHAT_SAMPLER = SAMPLER("typical", 1.0, 0.8, 0.4, 0.1, 0.1, 256)
-CHAT_SAMPLER = SAMPLER("nucleus", 1.0, 0.7, 0.4, 0.1, 0.1, 256)
-INSTRUCT_SAMPLER = SAMPLER("nucleus", 1.0, 0.5, 0.95, 0.3, 0.3, 256)
+CHAT_SAMPLER = SAMPLER("nucleus", 1.0, 0.7, 0.4, 0.4, 0.4, 256)
+INSTRUCT_SAMPLER = SAMPLER("nucleus", 1.0, 0.5, 0.95, 0.4, 0.4, 256)
 
 args = types.SimpleNamespace()
 
-# tokenizer = TOKENIZER("20B_tokenizer.json")
+# tokenizer = TOKENIZER("./model/20B_tokenizer.json")
 tokenizer = TOKENIZER("rwkv_vocab_v20230424")
+
+DONT_OUTPUT = -float('inf')
+END_OF_TEXT = 0
+END_OF_LINE = 11 if tokenizer.is_trie() else 187
+END_OF_LINE_DOUBLE = 261 if tokenizer.is_trie() else 535
+END_OF_ROUND = END_OF_LINE_DOUBLE if tokenizer.is_trie() else END_OF_LINE
 
 # args.strategy = 'cpu fp32'
 args.strategy = 'cuda fp16'
@@ -170,11 +168,10 @@ def fix_tokens_end_line(tokens):
 
 
 def fix_tokens_end_text(tokens):
+    fixed_tokens = [END_OF_LINE_DOUBLE] if tokenizer.is_trie() else \
+        [END_OF_LINE, END_OF_LINE]
     if tokens and tokens[-1] == END_OF_TEXT:
-        if tokenizer.is_trie():
-            tokens = tokens[:-1] + [END_OF_LINE_DOUBLE_TRIE]
-        else:
-            tokens = tokens[:-1] + [END_OF_LINE, END_OF_LINE]
+        tokens = tokens[:-1] + fixed_tokens
     return tokens
 
 
@@ -328,7 +325,6 @@ def on_generate(user: User, message: str, mode=GenerateMode.GENERATE) -> str:
         out, model_state = run_rnn(model_tokens)
         save_all_state(user.id, "gen_0", out, model_state, model_tokens)
 
-    occurrence = {}
     start_time = time.time()
 
     begin = len(model_tokens)
@@ -336,23 +332,21 @@ def on_generate(user: User, message: str, mode=GenerateMode.GENERATE) -> str:
     for i in range(MAX_GENERATE_LEN):
         if active_mode == GenerateMode.GENERATE:
             out[0] = DONT_OUTPUT
+
+        occurrence = {}
+        for token in model_tokens[max(begin, end - sampler.penalty_range):]:
+            if token in [END_OF_LINE]:
+                continue
+            if token not in occurrence:
+                occurrence[token] = 1
+            else:
+                occurrence[token] += 1
+
         for n in occurrence:
             out[n] -= sampler.presence_penalty + \
                 occurrence[n] * sampler.count_penalty
 
         token = sampler.sample(out)
-        if token not in occurrence:
-            occurrence[token] = 1
-        else:
-            occurrence[token] += 1
-
-        if i > sampler.penalty_range:
-            return_token = model_tokens[-sampler.penalty_range]
-            if return_token in occurrence:
-                occurrence[return_token] -= 1
-                if occurrence[return_token] == 0:
-                    del occurrence[return_token]
-
         if token != END_OF_TEXT:
             model_tokens += [token]
         out, model_state = run_rnn([token], model_state)
@@ -432,7 +426,6 @@ def on_message(user: User, message: str, alt=False) -> str:
             model_state,
             model_tokens)
 
-    occurrence = {}
     begin = len(model_tokens)
     end = begin
     for i in range(MAX_REPLY_LEN):
@@ -444,25 +437,22 @@ def on_message(user: User, message: str, alt=False) -> str:
             nl_bias = 0
         # else:
         #     nl_bias = (i - 300) * 0.25
-        out[END_OF_LINE] += nl_bias
-        for n in occurrence:
-            out[n] -= sampler.presence_penalty + \
-                occurrence[n] * sampler.count_penalty
+        out[END_OF_ROUND] += nl_bias
 
-        token = sampler.sample(out)
-        if token != END_OF_LINE:
+        occurrence = {}
+        for token in model_tokens[max(begin, end - sampler.penalty_range):]:
+            if token in [END_OF_LINE]:
+                continue
             if token not in occurrence:
                 occurrence[token] = 1
             else:
                 occurrence[token] += 1
 
-        if i > sampler.penalty_range:
-            return_token = model_tokens[-sampler.penalty_range]
-            if return_token in occurrence:
-                occurrence[return_token] -= 1
-                if occurrence[return_token] == 0:
-                    del occurrence[return_token]
+        for n in occurrence:
+            out[n] -= sampler.presence_penalty + \
+                occurrence[n] * sampler.count_penalty
 
+        token = sampler.sample(out)
         tokens = fix_tokens_end_text([token])
         model_tokens += tokens
         out, model_state = run_rnn(tokens, model_state)
