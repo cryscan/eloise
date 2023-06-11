@@ -1,8 +1,8 @@
 import chat
 import re
 
-from prompt import User, SCENARIO_ASSISTANT, SCENARIO_ELOISE, SCENARIO_NEURO
-from chat import GenerateMode, CHAT_SAMPLER, INSTRUCT_SAMPLER, model
+from prompt import User, SCENARIOS, CHAT_SAMPLER, INSTRUCT_SAMPLER
+from chat import GenerateMode, model
 
 
 try:
@@ -14,12 +14,6 @@ except:
 
 CHAT_HELP_COMMAND = "-c, -chat"
 PRIVATE_HELP_COMMAND = ""
-
-SCENARIO_SAMPLERS = [
-    (SCENARIO_ASSISTANT, INSTRUCT_SAMPLER),
-    (SCENARIO_ELOISE, CHAT_SAMPLER),
-    (SCENARIO_NEURO, CHAT_SAMPLER),
-]
 
 with open("./help.md", 'r') as file:
     model_name = model.args.MODEL_NAME.split('/')[-1].replace('.pth', '')
@@ -60,41 +54,10 @@ with open("./help.md", 'r') as file:
         '<inst_ar>', str(INSTRUCT_SAMPLER.penalty_range))
 
 
-def search_scenario_sampler(key: str):
-    scenario = chat.DEFAULT_SCENARIO
-    sampler = chat.DEFAULT_SAMPLER
-
-    max_match_len = 0
-    if key.isnumeric():
-        key = int(key)
-        if key < len(SCENARIO_SAMPLERS):
-            scenario, sampler = SCENARIO_SAMPLERS[key]
-    elif key:
-        for _scenario, _sampler in SCENARIO_SAMPLERS:
-            match_len = 0
-            for i in range(min(len(key), len(_scenario.name))):
-                if key[i] == _scenario.name[i]:
-                    match_len += 1
-                else:
-                    break
-            if match_len > max_match_len:
-                scenario = _scenario
-                sampler = _sampler
-                max_match_len = match_len
-
-    return scenario, sampler
-
-
-def list_scenarios():
-    reply = '### Scenarios\n'
-    for i, (scenario, _) in enumerate(SCENARIO_SAMPLERS):
-        reply += f"{i}. {scenario.name}\n"
-    return reply
-
-
 def commands(user: User, message, enable_chat=False, is_private=False):
     help_match = re.match("\-h(elp)?", message)
     params_match = re.match("\-p(arams)?", message)
+    prompts_match = re.match("\-pr(ompts)?", message)
 
     translate_match = re.match("\-tr", message)
     retry_match = re.match("\-(retry|e)", message)
@@ -120,6 +83,9 @@ def commands(user: User, message, enable_chat=False, is_private=False):
 
     if help_match:
         reply = help
+    elif prompts_match:
+        prompt = message[prompts_match.end():]
+        reply = chat.on_show_params(user, prompt, prompts=True)
     elif params_match:
         prompt = message[params_match.end():]
         reply = chat.on_show_params(user, prompt)
@@ -140,10 +106,10 @@ def commands(user: User, message, enable_chat=False, is_private=False):
         reply = chat.on_generate(user, prompt, mode=GenerateMode.INSTRUCT)
     elif enable_chat and reset_match:
         prompt = message[reset_match.end():]
-        scenario, sampler = search_scenario_sampler(prompt)
+        scenario, sampler = SCENARIOS.search(prompt)
         reply = chat.on_reset(user, prompt, scenario, sampler)
     elif enable_chat and list_match:
-        reply = list_scenarios()
+        reply = str(SCENARIOS)
     elif enable_chat and alt_match:
         prompt = message[alt_match.end():]
         reply = chat.on_message(user, prompt, alt=True)
@@ -162,4 +128,4 @@ def commands(user: User, message, enable_chat=False, is_private=False):
 
 
 def init():
-    chat.init_run(SCENARIO_SAMPLERS)
+    chat.init_run()

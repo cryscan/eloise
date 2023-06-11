@@ -14,7 +14,7 @@ import langid
 
 from model.model_run import RWKV
 from model.utils import TOKENIZER, SAMPLER
-from prompt import User, Scenario
+from prompt import User, Scenario, SCENARIOS
 
 import prompt
 
@@ -40,13 +40,6 @@ CHUNK_LEN = 256
 
 MAX_GENERATE_LEN = 250
 MAX_REPLY_LEN = 1024
-
-# CHAT_SAMPLER = SAMPLER("typical", 1.0, 0.8, 0.4, 0.1, 0.1, 256)
-CHAT_SAMPLER = SAMPLER("nucleus", 1.0, 0.7, 0.4, 0.4, 0.4, 256)
-INSTRUCT_SAMPLER = SAMPLER("nucleus", 1.0, 0.5, 0.95, 0.4, 0.4, 256)
-
-DEFAULT_SCENARIO = prompt.SCENARIO_ASSISTANT
-DEFAULT_SAMPLER = INSTRUCT_SAMPLER
 
 args = types.SimpleNamespace()
 
@@ -177,12 +170,12 @@ def fix_tokens_end_text(tokens):
     return tokens
 
 
-def init_run(scenario_samplers):
+def init_run():
     # try:
     #     recover_all_state()
     #     print("Recovered state")
     # except:
-    for scenario, _ in scenario_samplers:
+    for scenario, _ in SCENARIOS.data:
         print(f"Loading chat intro {scenario.name}...")
         tokens = tokenizer.encode(scenario.chat_intro())
         tokens = fix_tokens_end_line(tokens)
@@ -230,7 +223,7 @@ def on_reset(user: User, message: str, scenario: Scenario, sampler: SAMPLER) -> 
     return f"Chat reset for {user.nickname}. Scenario {scenario.name}. You are {scenario.user_name} and I am {scenario.bot_name}."
 
 
-def on_show_params(user: User, message: str) -> str:
+def on_show_params(user: User, message: str, prompts=False) -> str:
     try:
         params = load_params(user.id, "chat")
         scenario: Scenario = params['scenario']
@@ -238,13 +231,15 @@ def on_show_params(user: User, message: str) -> str:
         message = sampler.parse(message)
         save_params(user.id, "chat", scenario=scenario, sampler=sampler)
     except:
-        sampler = copy.deepcopy(DEFAULT_SAMPLER)
-        scenario = copy.deepcopy(DEFAULT_SCENARIO)
+        scenario, sampler = copy.deepcopy(SCENARIOS.default)
         message = sampler.parse(message)
         save_params(user.id, "chat", scenario=scenario, sampler=sampler)
-    return f'''
-### Scenario
-{scenario.name}
+
+    if prompts:
+        return scenario.chat_intro()
+    else:
+        return f'''
+{str(scenario)}
 
 {str(sampler)}
 '''
@@ -274,9 +269,9 @@ def on_generate(user: User, message: str, mode=GenerateMode.GENERATE) -> str:
 
     if mode not in [GenerateMode.RETRY, GenerateMode.MORE]:
         if mode == GenerateMode.GENERATE:
-            sampler = copy.deepcopy(CHAT_SAMPLER)
+            sampler = copy.deepcopy(prompt.CHAT_SAMPLER)
         elif mode == GenerateMode.INSTRUCT:
-            sampler = copy.deepcopy(INSTRUCT_SAMPLER)
+            sampler = copy.deepcopy(prompt.INSTRUCT_SAMPLER)
 
         message = sampler.parse(message)
         active_mode = mode
@@ -391,8 +386,7 @@ def on_message(user: User, message: str, alt=False) -> str:
         if alt:
             return reply
 
-        scenario = copy.deepcopy(DEFAULT_SCENARIO)
-        sampler = copy.deepcopy(DEFAULT_SAMPLER)
+        scenario, sampler = copy.deepcopy(SCENARIOS.default)
         message = sampler.parse(message)
 
         out, model_state, model_tokens = load_all_state('', scenario.name)

@@ -1,3 +1,6 @@
+from model.utils import SAMPLER
+
+
 class User:
     def __init__(self, id, nickname, sex):
         self.id = id
@@ -30,6 +33,11 @@ class Scenario:
 
         message = message.replace('\n', ' ').strip()
         return f"{user}{interface} {message}\n\n{bot}{interface}"
+
+    def __str__(self) -> str:
+        return "|{:^20}|{:^20}|{:^20}|\n|--------------------|--------------------|--------------------|\n|{:^20}|{:^20}|{:^20}|".format(
+            "Scenario", "User", "Bot",
+            self.name, self.user_name, self.bot_name)
 
 
 def instruct_format(message: str):
@@ -136,3 +144,54 @@ SCENARIO_ASSISTANT = Scenario(
     name='bot', user_name='Human', bot_name='Assistant', system_name='System', intro=CHAT_INTRO_ASSISTANT)
 SCENARIO_NEURO = Scenario(
     name='neuro', user_name='Kyon', bot_name='Neuro-Sama', system_name='System', intro=CHAT_INTRO_NEURO)
+
+
+CHAT_SAMPLER = SAMPLER("nucleus", 1.0, 0.7, 0.4, 0.4, 0.4, 256)
+INSTRUCT_SAMPLER = SAMPLER("nucleus", 1.0, 0.5, 0.95, 0.4, 0.4, 256)
+
+DEFAULT_SCENARIO = SCENARIO_ASSISTANT
+DEFAULT_SAMPLER = INSTRUCT_SAMPLER
+
+
+class ScenarioCollection:
+    def __init__(self):
+        self.data = [
+            (SCENARIO_ASSISTANT, INSTRUCT_SAMPLER),
+            (SCENARIO_ELOISE, CHAT_SAMPLER),
+            (SCENARIO_NEURO, CHAT_SAMPLER),
+        ]
+        self.default = (SCENARIO_ASSISTANT, INSTRUCT_SAMPLER)
+
+    def search(self, key: str):
+        scenario, sampler = self.default
+
+        max_match_len = 0
+        if key.isnumeric():
+            key = int(key)
+            if key < len(self.data):
+                scenario, sampler = self.data[key]
+        elif key:
+            for _scenario, _sampler in self.data:
+                match_len = 0
+                for i in range(min(len(key), len(_scenario.name))):
+                    if key[i] == _scenario.name[i]:
+                        match_len += 1
+                    else:
+                        break
+                if match_len > max_match_len:
+                    scenario = _scenario
+                    sampler = _sampler
+                    max_match_len = match_len
+
+        return scenario, sampler
+
+    def __str__(self) -> str:
+        reply = "|{:^20}|{:^20}|{:^20}|{:^20}|\n|--------------------|--------------------|--------------------|--------------------|\n".format(
+            "ID", "Scenario", "User", "Bot")
+        for i, (scenario, _) in enumerate(self.data):
+            reply += "|{:^20}|{:^20}|{:^20}|{:^20}|\n".format(
+                i, scenario.name, scenario.user_name, scenario.bot_name)
+        return reply
+
+
+SCENARIOS = ScenarioCollection()

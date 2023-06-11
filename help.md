@@ -4,6 +4,7 @@ Model: <model>
 ### Misc Utilities
 1. `-tr [-en, -zh] <text>`: Translate
 2. `-p, -params`: Show chat parameters
+3. `-pr, -prompts`: Show chat prompts
 
 ### Free Generation
 1. `-h, -help`: Show this help
