@@ -1,7 +1,7 @@
 import chat
 import re
 
-from prompt import User, SCENARIO_ALICE, SCENARIO_ELOISE, SCENARIO_NEURO
+from prompt import User, SCENARIO_ASSISTANT, SCENARIO_ELOISE, SCENARIO_NEURO
 from chat import GenerateMode, CHAT_SAMPLER, INSTRUCT_SAMPLER, model
 
 
@@ -12,8 +12,14 @@ except:
     print("Please provide your QQ number in `qq.txt`")
     QQ = ""
 
-CHAT_HELP_COMMAND = "`-c, -chat <text>`"
-PRIVATE_HELP_COMMAND = "`<text>`"
+CHAT_HELP_COMMAND = "-c, -chat"
+PRIVATE_HELP_COMMAND = ""
+
+SCENARIO_SAMPLERS = [
+    (SCENARIO_ASSISTANT, INSTRUCT_SAMPLER),
+    (SCENARIO_ELOISE, CHAT_SAMPLER),
+    (SCENARIO_NEURO, CHAT_SAMPLER),
+]
 
 with open("./help.md", 'r') as file:
     model_name = model.args.MODEL_NAME.split('/')[-1].replace('.pth', '')
@@ -54,6 +60,38 @@ with open("./help.md", 'r') as file:
         '<inst_ar>', str(INSTRUCT_SAMPLER.penalty_range))
 
 
+def search_scenario_sampler(key: str):
+    scenario = chat.DEFAULT_SCENARIO
+    sampler = chat.DEFAULT_SAMPLER
+
+    max_match_len = 0
+    if key.isnumeric():
+        key = int(key)
+        if key < len(SCENARIO_SAMPLERS):
+            scenario, sampler = SCENARIO_SAMPLERS[key]
+    elif key:
+        for _scenario, _sampler in SCENARIO_SAMPLERS:
+            match_len = 0
+            for i in range(min(len(key), len(_scenario.name))):
+                if key[i] == _scenario.name[i]:
+                    match_len += 1
+                else:
+                    break
+            if match_len > max_match_len:
+                scenario = _scenario
+                sampler = _sampler
+                max_match_len = match_len
+
+    return scenario, sampler
+
+
+def list_scenarios():
+    reply = '### Scenarios\n'
+    for i, (scenario, _) in enumerate(SCENARIO_SAMPLERS):
+        reply += f"{i}. {scenario.name}\n"
+    return reply
+
+
 def commands(user: User, message, enable_chat=False, is_private=False):
     help_match = re.match("\-h(elp)?", message)
     params_match = re.match("\-p(arams)?", message)
@@ -64,9 +102,8 @@ def commands(user: User, message, enable_chat=False, is_private=False):
     gen_match = re.match("\-g(en)?\s+", message)
     inst_match = re.match("\-i(nst)?\s+", message)
 
-    reset_match = re.match("\-(reset|s)", message)
-    reset_bot_match = re.match("\-(bot|b)", message)
-    reset_cat_match = re.match("\-f", message)
+    reset_match = re.match("\-(reset|s)\s*", message)
+    list_match = re.match("\-l(ist)?", message)
     alt_match = re.match("\-a(lt)?", message)
     chat_match = re.match("\-c(hat)?\s+", message)
     at_match = re.match(f"\[CQ:at,qq={QQ}\]", message)
@@ -101,15 +138,12 @@ def commands(user: User, message, enable_chat=False, is_private=False):
     elif enable_chat and inst_match:
         prompt = message[inst_match.end():]
         reply = chat.on_generate(user, prompt, mode=GenerateMode.INSTRUCT)
-    elif enable_chat and reset_bot_match:
-        prompt = message[reset_bot_match.end():]
-        reply = chat.on_reset(user, prompt, SCENARIO_ALICE, INSTRUCT_SAMPLER)
-    elif enable_chat and reset_cat_match:
-        prompt = message[reset_cat_match.end():]
-        reply = chat.on_reset(user, prompt, SCENARIO_NEURO, CHAT_SAMPLER)
     elif enable_chat and reset_match:
         prompt = message[reset_match.end():]
-        reply = chat.on_reset(user, prompt, SCENARIO_ELOISE, CHAT_SAMPLER)
+        scenario, sampler = search_scenario_sampler(prompt)
+        reply = chat.on_reset(user, prompt, scenario, sampler)
+    elif enable_chat and list_match:
+        reply = list_scenarios()
     elif enable_chat and alt_match:
         prompt = message[alt_match.end():]
         reply = chat.on_message(user, prompt, alt=True)
@@ -128,4 +162,4 @@ def commands(user: User, message, enable_chat=False, is_private=False):
 
 
 def init():
-    chat.init_run()
+    chat.init_run(SCENARIO_SAMPLERS)

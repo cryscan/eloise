@@ -7,17 +7,16 @@ Model: <model>
 
 ### Free Generation
 1. `-h, -help`: Show this help
-2. `-g, -gen <text>`: Generate text
-3. `-e, -retry`: Retry last generation
-4. `-m, -more`: Generate more
-6. `-i, -inst <text>`: Follow instructions
+2. `-g, -gen <text> [<params>]`: Generate text
+3. `-e, -retry [<params>]`: Retry last generation
+4. `-m, -more [<params>]`: Generate more
+6. `-i, -inst <text> [<params>]`: Follow instructions
 
 ### Chat
-1. `-s, -reset`: Reset your chat chain (Casual)
-2. `-b, -bot`: Reset your chat chain (AI Assistant)
-3. `-f`: Reset your chat chain (Role-playing)
-4. `-a, -alt`: Alternative reply
-5. <chat>: Chat with me
+1. `-s, -reset [<scenario>] [<params>]`: Reset your chat chain
+2. `-l, list`: List scenarios
+3. `-a, -alt [<params>]`: Alternative reply
+4. `<chat> <text> [<params>]`: Chat with me
 
 ### Parameters
 | Param             | Description                        | Default (Chat Mode) | Default (Bot/Instruction Mode) |

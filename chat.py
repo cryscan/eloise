@@ -14,7 +14,7 @@ import langid
 
 from model.model_run import RWKV
 from model.utils import TOKENIZER, SAMPLER
-from prompt import User, Scenario, SCENARIO_ALICE, SCENARIO_ELOISE, SCENARIO_NEURO
+from prompt import User, Scenario
 
 import prompt
 
@@ -45,6 +45,9 @@ MAX_REPLY_LEN = 1024
 CHAT_SAMPLER = SAMPLER("nucleus", 1.0, 0.7, 0.4, 0.4, 0.4, 256)
 INSTRUCT_SAMPLER = SAMPLER("nucleus", 1.0, 0.5, 0.95, 0.4, 0.4, 256)
 
+DEFAULT_SCENARIO = prompt.SCENARIO_ASSISTANT
+DEFAULT_SAMPLER = INSTRUCT_SAMPLER
+
 args = types.SimpleNamespace()
 
 # tokenizer = TOKENIZER("./model/20B_tokenizer.json")
@@ -65,7 +68,7 @@ args.strategy = 'cuda fp16'
 # args.strategy = 'cuda fp16 *20 -> cpu fp32'
 # args.strategy = 'cuda fp16i8 *16 -> cuda fp16'
 
-args.MODEL_NAME = '/root/autodl-tmp/models/RWKV-4-World-7B-v1-OnlyForTest_52%_trained-20230606-ctx4096'
+args.MODEL_NAME = '/root/autodl-tmp/models/RWKV-4-World-7B-v1-OnlyForTest_64%_trained-20230610-ctx4096'
 # args.MODEL_NAME = '/root/autodl-tmp/models/RWKV-4-Raven-14B-v12-Eng98%-Other2%-20230523-ctx8192'
 # args.MODEL_NAME = '/root/autodl-tmp/models/RWKV-4-Raven-7B-v11-Eng49%-Chn49%-Jpn1%-Other1%-20230430-ctx8192'
 
@@ -163,7 +166,6 @@ def clear_cache():
 def fix_tokens_end_line(tokens):
     if not tokenizer.is_trie() and tokens and tokens[-1] == END_OF_LINE_DOUBLE:
         tokens = tokens[:-1] + [END_OF_LINE, END_OF_LINE]
-        # print("Tokens fixed")
     return tokens
 
 
@@ -175,31 +177,17 @@ def fix_tokens_end_text(tokens):
     return tokens
 
 
-def init_run():
+def init_run(scenario_samplers):
     # try:
     #     recover_all_state()
     #     print("Recovered state")
     # except:
-    print("Loading chat intro...")
-    scenario = SCENARIO_ELOISE
-    tokens = tokenizer.encode(scenario.intro())
-    tokens = fix_tokens_end_line(tokens)
-    out, state = run_rnn(tokens)
-    save_all_state("", scenario.intro.__name__, out, state, tokens)
-
-    print("Loading chat intro...")
-    scenario = SCENARIO_ALICE
-    tokens = tokenizer.encode(scenario.intro())
-    tokens = fix_tokens_end_line(tokens)
-    out, state = run_rnn(tokens)
-    save_all_state("", scenario.intro.__name__, out, state, tokens)
-
-    print("Loading chat intro...")
-    scenario = SCENARIO_NEURO
-    tokens = tokenizer.encode(scenario.intro())
-    tokens = fix_tokens_end_line(tokens)
-    out, state = run_rnn(tokens)
-    save_all_state("", scenario.intro.__name__, out, state, tokens)
+    for scenario, _ in scenario_samplers:
+        print(f"Loading chat intro {scenario.name}...")
+        tokens = tokenizer.encode(scenario.chat_intro())
+        tokens = fix_tokens_end_line(tokens)
+        out, state = run_rnn(tokens)
+        save_all_state("", scenario.name, out, state, tokens)
 
     clear_cache()
     # dump_all_state()
@@ -231,8 +219,7 @@ def translate_message(message, from_lang, to_lang):
 
 
 def on_reset(user: User, message: str, scenario: Scenario, sampler: SAMPLER) -> str:
-    out, model_state, model_tokens = load_all_state(
-        '', scenario.intro.__name__)
+    out, model_state, model_tokens = load_all_state('', scenario.name)
     scenario = copy.deepcopy(scenario)
     sampler = copy.deepcopy(sampler)
     message = sampler.parse(message)
@@ -240,7 +227,7 @@ def on_reset(user: User, message: str, scenario: Scenario, sampler: SAMPLER) -> 
     save_all_state(user.id, "chat", out, model_state, model_tokens)
     save_params(user.id, "chat", scenario=scenario, sampler=sampler)
 
-    return f"Chat reset for {user.nickname}. You are {scenario.user_name} and I am {scenario.bot_name}."
+    return f"Chat reset for {user.nickname}. Scenario {scenario.name}. You are {scenario.user_name} and I am {scenario.bot_name}."
 
 
 def on_show_params(user: User, message: str) -> str:
@@ -251,11 +238,16 @@ def on_show_params(user: User, message: str) -> str:
         message = sampler.parse(message)
         save_params(user.id, "chat", scenario=scenario, sampler=sampler)
     except:
-        sampler = copy.deepcopy(CHAT_SAMPLER)
-        scenario = copy.deepcopy(SCENARIO_ELOISE)
+        sampler = copy.deepcopy(DEFAULT_SAMPLER)
+        scenario = copy.deepcopy(DEFAULT_SCENARIO)
         message = sampler.parse(message)
         save_params(user.id, "chat", scenario=scenario, sampler=sampler)
-    return str(sampler)
+    return f'''
+### Scenario
+{scenario.name}
+
+{str(sampler)}
+'''
 
 
 def on_translate(user: User, message: str) -> str:
@@ -399,12 +391,11 @@ def on_message(user: User, message: str, alt=False) -> str:
         if alt:
             return reply
 
-        scenario = copy.deepcopy(SCENARIO_ELOISE)
-        sampler = copy.deepcopy(CHAT_SAMPLER)
+        scenario = copy.deepcopy(DEFAULT_SCENARIO)
+        sampler = copy.deepcopy(DEFAULT_SAMPLER)
         message = sampler.parse(message)
 
-        out, model_state, model_tokens = load_all_state(
-            '', scenario.intro.__name__)
+        out, model_state, model_tokens = load_all_state('', scenario.name)
 
         save_all_state(user.id, "chat", out, model_state, model_tokens)
         save_params(user.id, "chat", scenario=scenario, sampler=sampler)
