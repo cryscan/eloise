@@ -19,6 +19,9 @@ Model: <model>
 3. `-a, -alt [<params>]`: Alternative reply
 4. `<chat> <text> [<params>]`: Chat with me
 
+### Scenarios
+<scenarios>
+
 ### Parameters
 | Param             | Description                        | Default (Chat Mode) | Default (Bot/Instruction Mode) |
 | ----------------- | ---------------------------------- | ------------------- | ------------------------------ |

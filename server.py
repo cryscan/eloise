@@ -20,6 +20,7 @@ with open("./help.md", 'r') as file:
 
     HELP_MESSAGE = file.read()
     HELP_MESSAGE = HELP_MESSAGE.replace('<model>', model_name)
+    HELP_MESSAGE = HELP_MESSAGE.replace('<scenarios>', str(SCENARIOS))
     HELP_MESSAGE = HELP_MESSAGE.replace(
         '<chat_nucleus>', 'Yes' if CHAT_SAMPLER.sample.__name__ == "sample_nucleus" else '')
     HELP_MESSAGE = HELP_MESSAGE.replace(
