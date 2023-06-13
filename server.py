@@ -107,8 +107,7 @@ def commands(user: User, message, enable_chat=False, is_private=False):
         reply = chat.on_generate(user, prompt, mode=GenerateMode.INSTRUCT)
     elif enable_chat and reset_match:
         prompt = message[reset_match.end():]
-        scenario, sampler = SCENARIOS.search(prompt)
-        reply = chat.on_reset(user, prompt, scenario, sampler)
+        reply = chat.on_reset(user, prompt)
     elif enable_chat and list_match:
         reply = str(SCENARIOS)
     elif enable_chat and alt_match:

@@ -60,7 +60,7 @@ def handle_post():
             if len(reply) > IMAGE_THRESHOLD or reply.count('\n') > 2:
                 options = {'font-family': 'SimSun'}
                 html = markdown.markdown(
-                    reply, extensions=['extra', 'nl2br', 'sane_lists', 'codehilite'], options=options)
+                    reply, extensions=['extra', 'nl2br', 'sane_lists', 'smarty', 'codehilite'], options=options)
 
                 file = f"./images/{user.id} {datetime.datetime.now().isoformat()}.png"
                 file = file.replace(' ', '-')
@@ -91,7 +91,7 @@ def handle_post():
             if len(reply) > IMAGE_THRESHOLD or reply.count('\n') > 2:
                 options = {'font-family': 'SimSun'}
                 html = markdown.markdown(
-                    reply, extensions=['extra', 'nl2br', 'sane_lists', 'codehilite'], options=options)
+                    reply, extensions=['extra', 'nl2br', 'sane_lists', 'smarty', 'codehilite'], options=options)
 
                 file = f"./images/{user.id} {datetime.datetime.now().isoformat()}.png"
                 file = file.replace(' ', '-')
