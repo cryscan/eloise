@@ -9,12 +9,13 @@ class User:
 
 
 class Scenario:
-    def __init__(self, name, user_name, bot_name, system_name, intro, interface=':'):
-        self.name = name
-        self.user_name = user_name
-        self.bot_name = bot_name
-        self.system_name = system_name
-        self.interface = interface
+    def __init__(self, name, sampler, user_name, bot_name, system_name, intro, interface=':'):
+        self.name: str = name
+        self.sampler: SAMPLER = sampler
+        self.user_name: str = user_name
+        self.bot_name: str = bot_name
+        self.system_name: str = system_name
+        self.interface: str = interface
         self.intro: str = intro
 
     def chat_intro(self):
@@ -35,9 +36,9 @@ class Scenario:
         return f"{user}{interface} {message}\n\n{bot}{interface}"
 
     def __str__(self) -> str:
-        return "|{:^20}|{:^20}|{:^20}|\n|--------------------|--------------------|--------------------|\n|{:^20}|{:^20}|{:^20}|".format(
+        return "|{:^20}|{:^20}|{:^20}|\n|--------------------|--------------------|--------------------|\n|{:^20}|{:^20}|{:^20}|\n\n".format(
             "Scenario", "User", "Bot",
-            self.name, self.user_name, self.bot_name)
+            self.name, self.user_name, self.bot_name) + str(self.sampler)
 
 
 def instruct_format(message: str):
@@ -137,40 +138,40 @@ Description of {bot}: direct but polite, curious, unhinged, outlandish, random, 
 
 '''
 
-SCENARIO_ELOISE = Scenario(
-    name='eloise', user_name='Rylan', bot_name='Eloise', system_name='Narrator', intro=CHAT_INTRO_ELOSIE)
-SCENARIO_ASSISTANT = Scenario(
-    name='bot', user_name='Human', bot_name='Assistant', system_name='System', intro=CHAT_INTRO_ASSISTANT)
-SCENARIO_NEURO = Scenario(
-    name='neuro', user_name='Kyon', bot_name='Neuro-Sama', system_name='System', intro=CHAT_INTRO_NEURO)
-
 
 CHAT_SAMPLER = SAMPLER("nucleus", 1.0, 0.7, 0.4, 0.4, 0.4, 256)
 INSTRUCT_SAMPLER = SAMPLER("nucleus", 1.0, 0.5, 0.95, 0.4, 0.4, 256)
+ROLEPLAYING_SAMPLER = SAMPLER("nucleus", 2.0, 0.7, 0.4, 0.4, 0.4, 256)
+
+SCENARIO_ELOISE = Scenario(
+    name='eloise', sampler=CHAT_SAMPLER, user_name='Rylan', bot_name='Eloise', system_name='Narrator', intro=CHAT_INTRO_ELOSIE)
+SCENARIO_ASSISTANT = Scenario(
+    name='bot', sampler=INSTRUCT_SAMPLER, user_name='Human', bot_name='Assistant', system_name='System', intro=CHAT_INTRO_ASSISTANT)
+SCENARIO_NEURO = Scenario(
+    name='neuro', sampler=ROLEPLAYING_SAMPLER, user_name='Kyon', bot_name='Neuro-Sama', system_name='System', intro=CHAT_INTRO_NEURO)
 
 DEFAULT_SCENARIO = SCENARIO_ASSISTANT
-DEFAULT_SAMPLER = INSTRUCT_SAMPLER
 
 
 class ScenarioCollection:
     def __init__(self):
         self.data = [
-            (SCENARIO_ASSISTANT, INSTRUCT_SAMPLER),
-            (SCENARIO_ELOISE, CHAT_SAMPLER),
-            (SCENARIO_NEURO, CHAT_SAMPLER),
+            SCENARIO_ASSISTANT,
+            SCENARIO_ELOISE,
+            SCENARIO_NEURO,
         ]
-        self.default = (SCENARIO_ASSISTANT, INSTRUCT_SAMPLER)
+        self.default = SCENARIO_ASSISTANT
 
     def search(self, key: str):
-        scenario, sampler = self.default
+        scenario = self.default
 
         max_match_len = 0
         if key.isnumeric():
             key = int(key)
             if key < len(self.data):
-                scenario, sampler = self.data[key]
+                scenario = self.data[key]
         elif key:
-            for _scenario, _sampler in self.data:
+            for _scenario in self.data:
                 match_len = 0
                 for i in range(min(len(key), len(_scenario.name))):
                     if key[i] == _scenario.name[i]:
@@ -179,15 +180,14 @@ class ScenarioCollection:
                         break
                 if match_len > max_match_len:
                     scenario = _scenario
-                    sampler = _sampler
                     max_match_len = match_len
 
-        return scenario, sampler
+        return scenario
 
     def __str__(self) -> str:
         reply = "|{:^20}|{:^20}|{:^20}|{:^20}|\n|--------------------|--------------------|--------------------|--------------------|\n".format(
             "ID", "Scenario", "User", "Bot")
-        for i, (scenario, _) in enumerate(self.data):
+        for i, scenario in enumerate(self.data):
             reply += "|{:^20}|{:^20}|{:^20}|{:^20}|\n".format(
                 i, scenario.name, scenario.user_name, scenario.bot_name)
         return reply

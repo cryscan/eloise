@@ -175,7 +175,7 @@ def init_run():
     #     recover_all_state()
     #     print("Recovered state")
     # except:
-    for scenario, _ in SCENARIOS.data:
+    for scenario in SCENARIOS.data:
         print(f"Loading chat intro {scenario.name}...")
         tokens = tokenizer.encode(scenario.chat_intro())
         tokens = fix_tokens_end_line(tokens)
@@ -212,15 +212,15 @@ def translate_message(message, from_lang, to_lang):
 
 
 def on_reset(user: User, message: str) -> str:
-    scenario, sampler = copy.deepcopy(SCENARIOS.default)
+    scenario = copy.deepcopy(SCENARIOS.default)
     key = copy.deepcopy(message)
-    key = sampler.parse(key)
-    scenario, sampler = copy.deepcopy(SCENARIOS.search(key))
-    message = sampler.parse(message)
+    key = scenario.sampler.parse(key)
+    scenario = copy.deepcopy(SCENARIOS.search(key.strip()))
+    message = scenario.sampler.parse(message)
 
     out, model_state, model_tokens = load_all_state('', scenario.name)
     save_all_state(user.id, "chat", out, model_state, model_tokens)
-    save_params(user.id, "chat", scenario=scenario, sampler=sampler)
+    save_params(user.id, "chat", scenario=scenario)
 
     return f"Chat reset for {user.nickname}. Scenario {scenario.name}. You are {scenario.user_name} and I am {scenario.bot_name}."
 
@@ -229,22 +229,16 @@ def on_show_params(user: User, message: str, prompts=False) -> str:
     try:
         params = load_params(user.id, "chat")
         scenario: Scenario = params['scenario']
-        sampler: SAMPLER = params['sampler']
-        message = sampler.parse(message)
-        save_params(user.id, "chat", scenario=scenario, sampler=sampler)
+        message = scenario.sampler.parse(message)
+        save_params(user.id, "chat", scenario=scenario)
     except:
-        scenario, sampler = copy.deepcopy(SCENARIOS.default)
-        message = sampler.parse(message)
-        save_params(user.id, "chat", scenario=scenario, sampler=sampler)
+        scenario = copy.deepcopy(SCENARIOS.default)
+        save_params(user.id, "chat", scenario=scenario)
 
     if prompts:
         return scenario.chat_intro()
     else:
-        return f'''
-{str(scenario)}
-
-{str(sampler)}
-'''
+        return str(scenario)
 
 
 def on_translate(user: User, message: str) -> str:
@@ -381,20 +375,21 @@ def on_message(user: User, message: str, alt=False) -> str:
 
         params = load_params(user.id, "chat")
         scenario: Scenario = params['scenario']
-        sampler: SAMPLER = params['sampler']
+        sampler: SAMPLER = scenario.sampler
         message = sampler.parse(message)
-        save_params(user.id, "chat", scenario=scenario, sampler=sampler)
+        save_params(user.id, "chat", scenario=scenario)
     except:
         if alt:
             return reply
 
-        scenario, sampler = copy.deepcopy(SCENARIOS.default)
+        scenario: Scenario = copy.deepcopy(SCENARIOS.default)
+        sampler: SAMPLER = scenario.sampler
         message = sampler.parse(message)
 
         out, model_state, model_tokens = load_all_state('', scenario.name)
 
         save_all_state(user.id, "chat", out, model_state, model_tokens)
-        save_params(user.id, "chat", scenario=scenario, sampler=sampler)
+        save_params(user.id, "chat", scenario=scenario)
 
     print(str(sampler))
     print(f"{scenario.bot_name}{scenario.interface}", end='')
