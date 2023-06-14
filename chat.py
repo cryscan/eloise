@@ -215,7 +215,7 @@ def on_reset(user: User, message: str) -> str:
     scenario, sampler = copy.deepcopy(SCENARIOS.default)
     key = copy.deepcopy(message)
     key = sampler.parse(key)
-    scenario, sampler = SCENARIOS.search(key)
+    scenario, sampler = copy.deepcopy(SCENARIOS.search(key))
     message = sampler.parse(message)
 
     out, model_state, model_tokens = load_all_state('', scenario.name)
