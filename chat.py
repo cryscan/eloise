@@ -61,6 +61,7 @@ args.strategy = 'cuda fp16'
 # args.strategy = 'cuda fp16 *20 -> cpu fp32'
 # args.strategy = 'cuda fp16i8 *16 -> cuda fp16'
 
+# args.MODEL_NAME = '/root/autodl-tmp/models/RWKV-4-World-3B-v1-20230619-ctx4096'
 # args.MODEL_NAME = '/root/autodl-tmp/models/RWKV-4-World-7B-v1-OnlyForTest_64%_trained-20230610-ctx4096'
 args.MODEL_NAME = '/root/autodl-tmp/models/RWKV-4-World-7B-v1-OnlyForTest_84%_trained-20230618-ctx4096'
 # args.MODEL_NAME = '/root/autodl-tmp/models/RWKV-4-Raven-14B-v12-Eng98%-Other2%-20230523-ctx8192'

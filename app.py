@@ -1,5 +1,6 @@
 from flask import Flask, request
 import os
+import re
 import requests
 import datetime
 import logging
@@ -27,6 +28,10 @@ received_messages = set()
 
 IMAGE_THRESHOLD = 1024
 IMAGE_WIDTH = 600
+
+
+def sub_bullets(text):
+    return re.sub('\n\* ([^\n]+)', '\n- \\1', text)
 
 
 @app.route('/', methods=["POST"])
@@ -60,7 +65,7 @@ def handle_post():
             if len(reply) > IMAGE_THRESHOLD or reply.count('\n') > 2:
                 options = {'font-family': 'SimSun'}
                 html = markdown.markdown(
-                    reply, extensions=['extra', 'nl2br', 'sane_lists', 'smarty', 'codehilite'], options=options)
+                    sub_bullets(reply), extensions=['extra', 'nl2br', 'sane_lists', 'smarty', 'codehilite'], options=options)
 
                 file = f"./images/{user.id} {datetime.datetime.now().isoformat()}.png"
                 file = file.replace(' ', '-')
@@ -91,7 +96,7 @@ def handle_post():
             if len(reply) > IMAGE_THRESHOLD or reply.count('\n') > 2:
                 options = {'font-family': 'SimSun'}
                 html = markdown.markdown(
-                    reply, extensions=['extra', 'nl2br', 'sane_lists', 'smarty', 'codehilite'], options=options)
+                    sub_bullets(reply), extensions=['extra', 'nl2br', 'sane_lists', 'smarty', 'codehilite'], options=options)
 
                 file = f"./images/{user.id} {datetime.datetime.now().isoformat()}.png"
                 file = file.replace(' ', '-')
@@ -115,6 +120,7 @@ def handle_chat():
         user_id = args['user_id']
         user_nickname = args.get('user_nickname', 'John')
         user_sex = args.get('user_sex', 'unknown')
+        rendered = args.get('rendered')
 
         temp = args.get('temp')
         top_p = args.get('top_p')
@@ -144,7 +150,13 @@ def handle_chat():
     if matched:
         logger.info(f"{user.nickname}({user.id}): {prompt}")
         logger.info(reply)
-        return reply
+        if rendered:
+            options = {'font-family': 'SimSun'}
+            html = markdown.markdown(
+                sub_bullets(reply), extensions=['extra', 'nl2br', 'sane_lists', 'smarty', 'codehilite'], options=options)
+            return html
+        else:
+            return reply
 
     return ''
 

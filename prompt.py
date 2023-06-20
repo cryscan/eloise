@@ -146,7 +146,7 @@ ROLEPLAYING_SAMPLER = SAMPLER("nucleus", 1.5, 0.7, 0.4, 0.4, 0.4, 256)
 SCENARIO_ELOISE = Scenario(
     name='eloise', sampler=CHAT_SAMPLER, user_name='Rylan', bot_name='Eloise', system_name='Narrator', intro=CHAT_INTRO_ELOSIE)
 SCENARIO_ASSISTANT = Scenario(
-    name='bot', sampler=INSTRUCT_SAMPLER, user_name='Human', bot_name='Assistant', system_name='System', intro=CHAT_INTRO_ASSISTANT)
+    name='bot', sampler=INSTRUCT_SAMPLER, user_name='User', bot_name='AI', system_name='System', intro=CHAT_INTRO_ASSISTANT)
 SCENARIO_NEURO = Scenario(
     name='neuro', sampler=ROLEPLAYING_SAMPLER, user_name='Kyon', bot_name='Neuro-Sama', system_name='System', intro=CHAT_INTRO_NEURO)
 
