@@ -185,7 +185,7 @@ CHAT_INTRO_NEURO_CHN = '''以下是一段{user}与一位名叫{bot}的女孩间�
 
 
 CHAT_SAMPLER = SAMPLER("nucleus", 1.0, 0.7, 0.4, 0.4, 0.4, 256)
-INSTRUCT_SAMPLER = SAMPLER("nucleus", 1.0, 0.5, 0.95, 0.4, 0.4, 256)
+INSTRUCT_SAMPLER = SAMPLER("nucleus", 1.5, 0.3, 0.95, 0.4, 0.4, 256)
 ROLEPLAYING_SAMPLER = SAMPLER("nucleus", 2.0, 0.5, 0.4, 0.4, 0.4, 256)
 
 SCENARIO_ELOISE = Scenario(
