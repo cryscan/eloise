@@ -63,7 +63,8 @@ args.strategy = 'cuda fp16'
 
 # args.MODEL_NAME = '/root/autodl-tmp/models/RWKV-4-World-3B-v1-20230619-ctx4096'
 # args.MODEL_NAME = '/root/autodl-tmp/models/RWKV-4-World-7B-v1-20230626-ctx4096'
-args.MODEL_NAME = '/root/autodl-tmp/models/RWKV-4-World-CHNtuned-7B-v1-20230709-ctx4096'
+# args.MODEL_NAME = '/root/autodl-tmp/models/RWKV-4-World-CHNtuned-7B-v1-20230709-ctx4096'
+args.MODEL_NAME = '/root/autodl-tmp/models/RWKV-5-World-7B-v2-OnlyForTest_22%_trained-20231022-ctx4096'
 # args.MODEL_NAME = '/root/autodl-tmp/models/RWKV-4-Raven-14B-v12-Eng98%-Other2%-20230523-ctx8192'
 # args.MODEL_NAME = '/root/autodl-tmp/models/RWKV-4-Raven-7B-v11-Eng49%-Chn49%-Jpn1%-Other1%-20230430-ctx8192'
 
@@ -96,24 +97,38 @@ def run_rnn(tokens, model_state=None):
 
 def state_to_cuda(state):
     if state:
-        for i in range(model.args.n_layer):
-            dd = model.strategy[i]
-            dev = dd.device
-            state[i*5+0] = state[i*5+0].to(dev)
-            state[i*5+1] = state[i*5+1].to(dev)
-            state[i*5+2] = state[i*5+2].to(dev)
-            state[i*5+3] = state[i*5+3].to(dev)
-            state[i*5+4] = state[i*5+4].to(dev)
+        if model.version == 4:
+            for i in range(model.args.n_layer):
+                dd = model.strategy[i]
+                dev = dd.device
+                state[i*5+0] = state[i*5+0].to(dev)
+                state[i*5+1] = state[i*5+1].to(dev)
+                state[i*5+2] = state[i*5+2].to(dev)
+                state[i*5+3] = state[i*5+3].to(dev)
+                state[i*5+4] = state[i*5+4].to(dev)
+        elif model.version >= 5:
+            for i in range(model.args.n_layer):
+                dd = model.strategy[i]
+                dev = dd.device
+                state[i*3+0] = state[i*3+0].to(dev)
+                state[i*3+1] = state[i*3+1].to(dev)
+                state[i*3+2] = state[i*3+2].to(dev)
 
 
 def state_to_cpu(state):
     if state:
-        for i in range(model.args.n_layer):
-            state[i*5+0] = state[i*5+0].cpu()
-            state[i*5+1] = state[i*5+1].cpu()
-            state[i*5+2] = state[i*5+2].cpu()
-            state[i*5+3] = state[i*5+3].cpu()
-            state[i*5+4] = state[i*5+4].cpu()
+        if model.version == 4:
+            for i in range(model.args.n_layer):
+                state[i*5+0] = state[i*5+0].cpu()
+                state[i*5+1] = state[i*5+1].cpu()
+                state[i*5+2] = state[i*5+2].cpu()
+                state[i*5+3] = state[i*5+3].cpu()
+                state[i*5+4] = state[i*5+4].cpu()
+        elif model.version >= 5:
+            for i in range(model.args.n_layer):
+                state[i*3+0] = state[i*3+0].cpu()
+                state[i*3+1] = state[i*3+1].cpu()
+                state[i*3+2] = state[i*3+2].cpu()
 
 
 all_state = {}
