@@ -26,7 +26,7 @@ non_chat_groups = []
 
 received_messages = set()
 
-IMAGE_THRESHOLD = 1024
+IMAGE_THRESHOLD = 2048
 IMAGE_WIDTH = 600
 
 
@@ -62,7 +62,7 @@ def handle_post():
             logger.info(f"{user.nickname}({user.id}): {prompt}")
             logger.info(reply)
             received_messages.add(message_id)
-            if len(reply) > IMAGE_THRESHOLD or reply.count('\n') > 2:
+            if len(reply) > IMAGE_THRESHOLD or reply.count('\n') > 5:
                 options = {'font-family': 'SimSun'}
                 html = markdown.markdown(
                     sub_bullets(reply), extensions=['extra', 'nl2br', 'sane_lists', 'smarty', 'codehilite'], options=options)
@@ -146,6 +146,7 @@ def handle_chat():
     user = server.User(user_id, user_nickname, user_sex)
     matched, prompt, reply = server.commands(
         user, message, enable_chat=True, is_private=True)
+    reply = re.sub(r'(我是.+)((GPT|Gpt|gpt)\s*-\s*3.5\s*接口)', r'\1RWKV', reply)
 
     if matched:
         logger.info(f"{user.nickname}({user.id}): {prompt}")

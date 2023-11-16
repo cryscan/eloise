@@ -193,9 +193,9 @@ SCENARIO_ELOISE = Scenario(
 SCENARIO_ASSISTANT = Scenario(
     name='bot', sampler=INSTRUCT_SAMPLER, user_name='User', bot_name='Assistant', system_name='System', intro=CHAT_INTRO_ASSISTANT)
 SCENARIO_NEURO = Scenario(
-    name='neuro', sampler=ROLEPLAYING_SAMPLER, user_name='Kyon', bot_name='Neuro-Sama', system_name='System', intro=CHAT_INTRO_NEURO)
+    name='neuro', sampler=ROLEPLAYING_SAMPLER, user_name='Player', bot_name='Neuro-Sama', system_name='System', intro=CHAT_INTRO_NEURO)
 SCENARIO_NEURO_CHN = Scenario(
-    name='neuro-chn', sampler=ROLEPLAYING_SAMPLER, user_name='Kyon', bot_name='Neuro-Sama', system_name='System', intro=CHAT_INTRO_NEURO_CHN)
+    name='neuro-chn', sampler=ROLEPLAYING_SAMPLER, user_name='Player', bot_name='Neuro-Sama', system_name='System', intro=CHAT_INTRO_NEURO_CHN)
 
 DEFAULT_SCENARIO = SCENARIO_ASSISTANT
 
