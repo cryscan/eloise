@@ -12,3 +12,27 @@ password.encrypt
 session.token
 device.json
 qq.txt
+
+# Testing related
+.pytest_cache/
+.coverage
+htmlcov/
+coverage.xml
+
+# Claude settings
+.claude/*
+
+# Build artifacts
+build/
+dist/
+*.egg-info/
+
+# Virtual environments
+venv/
+env/
+.env
+
+# IDE files
+.idea/
+*.swp
+*.swo
